@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
 import type { KnowledgeSnapshot } from "../../src/features/knowledge/types";
 import type { RunSnapshot } from "../../src/features/runs/types";
+import type { DispatchResult } from "../../src/features/conversations/types";
 
 const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -66,8 +67,18 @@ test("knowledge_module real worker preserves evidence and blocks dispatch after 
   expect(messageId).toBeTruthy();
   await page.getByRole("link", { name: "Open draft in account", exact: true }).click();
   const message = page.locator(`[id="message-${messageId}"]`);
+  const dispatchUrl = `${api}/api/v1/messages/${encodeURIComponent(messageId!)}/simulate-dispatch`;
+  const dispatchResponse = page.waitForResponse(
+    (response) => response.url() === dispatchUrl && response.request().method() === "POST",
+  );
   await message.getByRole("button", { name: "Simulate dispatch", exact: true }).click();
-  await expect(message.getByText("blocked", { exact: true })).toBeVisible();
-  await expect(page.getByText("Knowledge reference is invalid or revoked", { exact: false })).toBeVisible();
+  const response = await dispatchResponse;
+  expect(response.ok()).toBeTruthy();
+  const dispatch = await response.json() as DispatchResult;
+  expect(dispatch.message_id).toBe(messageId);
+  expect(dispatch.status).toBe("blocked");
+  expect(dispatch.reason_codes).toContain("knowledge_reference_invalid");
+  const result = page.getByRole("status").filter({ hasText: "blocked:" });
+  await expect(result).toContainText("Knowledge reference is invalid or revoked");
   await expect(message.getByText("simulated_sent", { exact: true })).toHaveCount(0);
 });
