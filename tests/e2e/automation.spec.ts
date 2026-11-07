@@ -17,7 +17,7 @@ test("dashboard links open review and contextual discussion stays in place", asy
   await page.route("**/api/v1/manager-sessions/discussion-1/messages?*", route => route.fulfill({ json: list([
     { id: "turn1", session_id: "discussion-1", turn_index: 1, role: "manager", content: "The hardship case remains paused pending your decision.", created_at: time, run_id: "run-1" },
   ]) }));
-  await page.goto("/");
+  await page.goto("/overview");
   await expect(page.getByRole("heading", { name: "Daily collection" })).toBeVisible();
   await page.getByRole("link", { name: /Review hardship/ }).click();
   await expect(page).toHaveURL(/\/review\?review=review1/);
@@ -110,7 +110,7 @@ test("dashboard exposes stale worker scans and actionable runless attention", as
     counts: { queued: 0, running: 0, sent: 0, deferred: 0, needs_attention: 1 },
     attention_items: [{ id: "schedule-1", account_id: "A001", run_id: null, reason_codes: ["data_stale"], updated_at: time }],
   } }));
-  await page.goto("/");
+  await page.goto("/overview");
   await expect(page.getByText("Worker scan is overdue. Check that the collection worker is running.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Open account", exact: true })).toHaveAttribute("href", "/accounts/A001");
 });

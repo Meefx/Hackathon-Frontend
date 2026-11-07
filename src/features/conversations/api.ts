@@ -1,5 +1,5 @@
 import { get, post, type Page } from "@/lib/http";
-import type { Message, InboundRequest, DispatchResult } from "./types";
+import type { Message, InboundRequest, DispatchResult, WhatsAppConnection } from "./types";
 export const getMessages = (
   account: string,
   offset = 0,
@@ -17,8 +17,18 @@ export const addInbound = (account: string, body: InboundRequest) =>
 export const dispatchMessage = (
   id: string,
   body: { idempotency_key: string; expected_message_version: number },
+  channel: Message["channel"] = "simulated_chat",
 ) =>
   post<DispatchResult>(
-    `/api/v1/messages/${encodeURIComponent(id)}/simulate-dispatch`,
+    `/api/v1/messages/${encodeURIComponent(id)}/${channel === "whatsapp" ? "dispatch" : "simulate-dispatch"}`,
     body,
   );
+
+export const getWhatsAppConnection = (accountId: string, signal?: AbortSignal) =>
+  get<WhatsAppConnection>(`/api/v1/accounts/${encodeURIComponent(accountId)}/whatsapp`, signal);
+
+export const linkWhatsApp = (accountId: string, idempotencyKey: string) =>
+  post<WhatsAppConnection>(`/api/v1/accounts/${encodeURIComponent(accountId)}/whatsapp`, { idempotency_key: idempotencyKey });
+
+export const disconnectWhatsApp = (accountId: string) =>
+  post<WhatsAppConnection>(`/api/v1/accounts/${encodeURIComponent(accountId)}/whatsapp/disconnect`, {});

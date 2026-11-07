@@ -111,7 +111,28 @@ export function CollectionWorkspace({ view }: { view: "overview" | "accounts" })
         <footer className="footer"><span>Graceline</span><span>Clarity for every collection.</span></footer>
 
     <dialog ref={dialog} onClose={() => setSelected(null)} onClick={event => { if (event.target === dialog.current) setSelected(null); }} aria-labelledby="detail-title">
-      {selected && <div className="dialog-content"><div className="dialog-heading"><span className="eyebrow">ACCOUNT DETAILS</span><button className="close-button" onClick={() => setSelected(null)} aria-label="Close account details">×</button></div><h2 id="detail-title">{selected.borrower_name}</h2><p>{selected.loan_reference} · {selected.id}</p><div className="detail-balance"><span>Outstanding balance</span><strong>{currency(selected.outstanding_amount)}</strong></div><dl><div><dt>Status</dt><dd><span className={`status-pill ${selected.status}`}>{statusLabels[selected.status]}</span></dd></div><div><dt>Days past due</dt><dd>{selected.days_past_due}</dd></div><div><dt>Due date</dt><dd>{formatDate(selected.due_date)}</dd></div><div><dt>Assigned to</dt><dd>{selected.assigned_to}</dd></div></dl><div className="pagination"><Link className="button primary" href={`/accounts/${selected.id}`}>Open workspace</Link><button className="button" onClick={() => setSelected(null)}>Done</button></div></div>}
+      {selected && <div className="dialog-content">
+        <div className="dialog-heading">
+          <span className="eyebrow">ACCOUNT DETAILS</span>
+          <button className="close-button" onClick={() => setSelected(null)} aria-label="Close account details">×</button>
+        </div>
+        <h2 id="detail-title">{selected.borrower_name}</h2>
+        <p>{selected.loan_reference} · {selected.id}</p>
+        <div className="detail-balance">
+          <span>Outstanding balance</span><strong>{currency(selected.outstanding_amount)}</strong>
+        </div>
+        <dl>
+          <div><dt>Status</dt><dd><span className={`status-pill ${selected.status}`}>{statusLabels[selected.status]}</span></dd></div>
+          <div><dt>Days past due</dt><dd>{selected.days_past_due}</dd></div>
+          <div><dt>Due date</dt><dd>{formatDate(selected.due_date)}</dd></div>
+          <div><dt>Assigned to</dt><dd>{selected.assigned_to}</dd></div>
+        </dl>
+        <div className="pagination">
+          <Link className="button primary" href={`/accounts/${encodeURIComponent(selected.id)}`}>Open workspace</Link>
+          <Link className="button" href={`/manager?account=${encodeURIComponent(selected.id)}`}>Discuss with manager</Link>
+          <button className="button" onClick={() => setSelected(null)}>Done</button>
+        </div>
+      </div>}
     </dialog>
   </AppShell>;
 }

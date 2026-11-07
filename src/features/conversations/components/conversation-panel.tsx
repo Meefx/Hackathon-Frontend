@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getMessages, addInbound, dispatchMessage } from "../api";
 import type { InboundRequest, Message } from "../types";
@@ -11,6 +11,7 @@ import { DataState } from "@/components/ui/data-state";
 import { timestamp } from "@/lib/format";
 import { ApiError, errorMessage } from "@/lib/http";
 import styles from "@/components/ui/panels.module.css";
+import { WhatsAppConnectionPanel } from "./whatsapp-connection";
 export function ConversationPanel({
   accountId,
   policy,
@@ -28,12 +29,14 @@ export function ConversationPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
+  const [whatsappLinked, setWhatsAppLinked] = useState(false);
   const lock = useRef(false);
   const pending = useRef<
     | { kind: "inbound"; body: InboundRequest }
     | {
         kind: "dispatch";
         id: string;
+        channel: Message["channel"];
         body: { idempotency_key: string; expected_message_version: number };
       }
     | null
@@ -48,11 +51,23 @@ export function ConversationPanel({
     ),
   );
   const integrations = useRemote(getIntegrations);
+  useEffect(() => {
+    if (!whatsappLinked) return;
+    const timer = setInterval(() => {
+      messages.refresh();
+      onChanged();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [whatsappLinked, messages.refresh, onChanged]);
   const channel = integrations.data?.items.find(
     (item) => item.id === "simulated_chat",
   );
   const canDispatch =
     !!policy?.allowed && channel?.health === "healthy" && channel.implemented;
+  const canDispatchWhatsApp =
+    !!policy?.allowed && integrations.data?.items.some(
+      (item) => item.id === "whatsapp" && item.configured,
+    );
   async function perform(message?: Message) {
     if (lock.current) return;
     lock.current = true;
@@ -65,6 +80,7 @@ export function ConversationPanel({
         ? {
             kind: "dispatch" as const,
             id: message.id,
+            channel: message.channel,
             body: {
               idempotency_key: crypto.randomUUID(),
               expected_message_version: message.version,
@@ -85,7 +101,7 @@ export function ConversationPanel({
         setResult("Simulated inbound received.");
         setText("");
       } else {
-        const value = await dispatchMessage(action.id, action.body);
+        const value = await dispatchMessage(action.id, action.body, action.channel);
         setResult(
           `${value.status}: ${value.reason_codes.map(reasonLabel).join("; ") || "Backend dispatch decision confirmed"}`,
         );
@@ -107,15 +123,21 @@ export function ConversationPanel({
   }
   return (
     <section className={styles.panel}>
-      <h2>Simulated conversation</h2>
+      <h2>Conversation</h2>
       <p>
-        Only simulated_chat can dispatch. WhatsApp, email and phone availability
-        is shown in{" "}
+        Dispatch decisions are enforced by the backend. Channel availability is shown in{" "}
         <Link className={styles.link} href="/integrations">
           Integrations
         </Link>
         .
       </p>
+      <WhatsAppConnectionPanel
+        key={accountId}
+        accountId={accountId}
+        revision={revision}
+        onChanged={onChanged}
+        onLinkedChange={setWhatsAppLinked}
+      />
       {integrations.error && (
         <p className={styles.notice}>
           Channel availability could not be checked. Dispatch is disabled.{" "}
@@ -158,13 +180,19 @@ export function ConversationPanel({
                     {id}
                   </span>
                 ))}
-                {message.status === "draft" && (
+                {message.status === "draft" && message.channel === "email" && (
+                  <p className={styles.muted}>Email demo delivery is managed automatically.</p>
+                )}
+                {message.status === "draft" && message.channel !== "email" && (
                   <button
                     className="button"
-                    disabled={!canDispatch || busy || !!pending.current}
+                    disabled={
+                      !(message.channel === "whatsapp" ? canDispatchWhatsApp : canDispatch)
+                      || busy || !!pending.current
+                    }
                     onClick={() => perform(message)}
                   >
-                    Simulate dispatch
+                    {message.channel === "whatsapp" ? "Send WhatsApp test" : "Simulate dispatch"}
                   </button>
                 )}
               </div>

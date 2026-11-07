@@ -7,13 +7,13 @@ import { TaskProposalCard } from "./task-proposal-card";
 import styles from "./manager-chat.module.css";
 
 
-export function ChatRunProgress({ id, onFinished }: { id: string; onFinished: () => void }) {
+export function ChatRunProgress({ id, onFinished }: { id: string; onFinished?: () => void }) {
   const state = useRunPolling(id);
   const notified = useRef(false);
   const run = state.run;
   const terminal = !!run && !["queued", "running"].includes(run.status);
   useEffect(() => {
-    if (terminal && !notified.current) {
+    if (terminal && onFinished && !notified.current) {
       notified.current = true;
       onFinished();
     }

@@ -125,8 +125,9 @@ test("Hermes unavailability remains visible and blocks chat submission", async (
   await chatFixture(page);
   let writes = 0;
   await page.route("**/api/v1/manager/chat/runs", route => { writes += 1; return route.fulfill({ status: 202, json: accepted }); });
-  await page.goto("/manager");
+  await page.goto("/settings");
   await page.getByLabel("Chat runtime").selectOption("hermes");
+  await page.getByRole("link", { name: "Back to chat", exact: true }).click();
   await expect(page.getByText("Selected chat runtime is unavailable.", { exact: false })).toBeVisible();
   await page.getByLabel("Message the manager").fill("Inspect portfolio priorities using Hermes");
   await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeDisabled();
