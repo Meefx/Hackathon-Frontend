@@ -27,6 +27,9 @@ for (const configured of [false, true]) {
         },
       }),
     );
+    await page.route("**/api/v1/integrations/gmail/collection-demo", route =>
+      route.fulfill({ json: { configured, recipient_masked: configured ? "t***@example.com" : null, latest: null } }),
+    );
 
     await page.goto("/integrations");
     const card = page.getByRole("article").filter({
@@ -51,7 +54,9 @@ for (const configured of [false, true]) {
     await expect(card).toContainText("Choose a fresh UUID for each intentional new test.");
     await expect(card).toContainText("Gmail API acceptance");
     await expect(card).toContainText("checked in the test mailbox");
-    await expect(card.getByRole("button")).toHaveCount(0);
+    const demoButton = card.getByRole("button", { name: "Run email collection demo", exact: true });
+    if (configured) await expect(demoButton).toBeEnabled();
+    else await expect(demoButton).toBeDisabled();
     await expect(card.getByRole("textbox")).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth))
       .toBeLessThanOrEqual(configured ? 1280 : 375);

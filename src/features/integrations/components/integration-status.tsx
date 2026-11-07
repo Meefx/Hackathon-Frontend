@@ -5,6 +5,7 @@ import { DataState } from "@/components/ui/data-state";
 import { timestamp } from "@/lib/format";
 import styles from "@/components/ui/panels.module.css";
 import { getIntegrations } from "../api";
+import { GmailCollectionDemoPanel } from "./gmail-collection-demo";
 export function IntegrationStatusPanel() {
   const state = useRemote(getIntegrations);
   return (
@@ -49,6 +50,7 @@ export function IntegrationStatusPanel() {
               )}
               {item.id === "gmail" && (
                 <div>
+                  <GmailCollectionDemoPanel />
                   <p>
                     Test emails use fixed synthetic content and the configured
                     team test mailbox.
