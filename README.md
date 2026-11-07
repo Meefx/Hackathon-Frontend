@@ -1,48 +1,86 @@
 # CollectFlow
 
-Next.js frontend for a lending collections portal. Built with the App Router, React, strict TypeScript, and responsive CSS. The English interface displays balances in Indonesian rupiah (IDR).
+Next.js 16, React 19 and strict TypeScript portal for a synthetic lending collections demo. English interface, integer Indonesian rupiah and event times in Asia/Jakarta.
 
 ## Run locally
 
-Requires Node.js 22+ (Node 24 recommended) and npm.
+Requires Node.js 22+ (Node 24 recommended), npm, and the [FastAPI backend](https://github.com/Meefx/Hackathon-Backend).
 
 ```sh
-git clone https://github.com/Meefx/Hackathon-Frontend.git
-cd Hackathon-Frontend
 cp .env.example .env.local
 npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. Start the [FastAPI backend](https://github.com/Meefx/Hackathon-Backend) on http://localhost:8000 and run its explicit demo seed to populate the dashboard. The frontend reads the real local API; an unavailable backend displays a retry state.
+Open http://localhost:3000. Start dependencies in this order using the backend README: PostgreSQL, checked-in migrations, explicit synthetic demo seed, API, collection worker (`uv run python -m app.workers.collection`), then frontend. Set backend `DEMO_FIXTURE_ENABLED=true` and `KNOWLEDGE_MODE=demo_fixture` explicitly for a reproducible demo. The API alone accepts queued tasks; the worker advances them.
 
-`NEXT_PUBLIC_API_URL` configures the API origin. It is public browser configuration and must not contain credentials. Changes require restarting the dev server or rebuilding. Allow the frontend origin in the backend's `CORS_ORIGINS`.
+`NEXT_PUBLIC_API_URL` is the browser-visible API origin (default `http://localhost:8000`). Restart or rebuild after changing it. Add the frontend origin to backend `CORS_ORIGINS`; browser tests use `http://127.0.0.1:3100`. Credentials for Hermes, MCP, classifiers and providers belong in the backend environment.
 
-## Included
+For Hermes, configure the remote runtime/bridge and MCP endpoint in the backend using its runbook. Integrations shows configured, health and actual execution mode separately. Configured but unknown health is unverified; a live run still needs backend validation. Runtime and knowledge outages display API errors or persisted blocked/interrupted outcomes.
 
-- `/`: portfolio totals, overdue balances, and clickable aging buckets.
-- `/accounts`: searchable account list, status filtering, and pagination.
-- Account detail dialog with balance, due date, days past due, and ownership.
-- Loading, empty, error, retry, and not-found states.
-- Mobile layouts, keyboard navigation, and accessible native dialog.
+## Portal
 
-## Checks and production build
+- `/`: whole-portfolio totals and aging filters.
+- `/accounts`: search, filtering, pagination and accessible detail dialog.
+- `/accounts/{id}`: facts, contact policy, conversations, simulated inbound/dispatch, takeover/resume, run history and read-only audit.
+- `/manager`: portfolio-wide account search, manager sessions and three task types: follow up, collector brief and improvement review.
+- `/runs/{id}`: persisted status, ordered specialist evidence, artifacts, immutable knowledge snapshots, events, cancellation and permitted recovery.
+- `/agents`: six role profiles with configured and available status.
+- `/review`: human escalation queue, resolution and separate case resume outcome.
+- `/integrations`: sanitized runtime, knowledge, MCP, guardrail and channel status.
+
+Only `simulated_chat` dispatches synthetic messages. WhatsApp, email and phone are explicit unavailable provider skeletons. Policy, recipient, knowledge references, approval and dispatch gates are owned by the backend.
+
+## Recovery
+
+The manager stores only account/session/run IDs and an idempotency request key in browser storage. It does not store instructions, messages or credentials. After a lost submission response or refresh, the saved key finds the accepted run through a read request. In-memory retries preserve the exact write payload/key. Opening a confirmed run acknowledges the submission journal; run URLs and server session history remain available.
+
+Run polling has no overlapping requests, aborts on navigation, backs off during connection errors and preserves monotonically increasing versions/event sequences. “Status update delayed” preserves the last confirmed outcome. Cancellation is a request until worker confirmation. Reconcile/retry controls follow backend `allowed_actions`. Review resolution can leave the case paused; resume never sends a message.
+
+## Checks
 
 ```sh
 npm run typecheck
 npm run build
-npm start
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Dependencies are pinned in `package-lock.json`; use `npm ci` for reproducible installs. GitHub Actions runs the typecheck and production build on pushes and pull requests. Dependency installation requires npm registry access.
+The fixture browser suite starts Next on port 3100 and intercepts HTTP only inside tests. The application always uses the backend REST API. GitHub Actions runs typecheck, build and Chromium fixture tests.
+
+The separate integration smoke suite requires the actual API, migrated/seeded PostgreSQL, running worker, explicit simulator/demo knowledge configuration, and CORS for port 3100:
+
+```sh
+npm run test:smoke
+```
+
+Smoke tests create persistent synthetic tasks/messages/reviews and intentionally exercise human pause. They require at least one currently eligible synthetic account, and verify follow up → evidence → reload → dispatch → escalation → resolve, plus collector brief and improvement proposal. They do not prove live Hermes, live classifier, live knowledge retrieval, or remote MCP connectivity; verify those with the backend integration suite and operational evidence.
+
+The separate knowledge-module smoke uses an explicitly prepared synthetic critical document, a contact-eligible synthetic account, and backend `KNOWLEDGE_MODE=knowledge_module` with the in-process trust service. The document must be approved before the test. It is retired by the test and dispatch must then be blocked. Run it separately from the demo-fixture journey. Set `TRUST_API_TOKEN` in the test process environment. Credentials are read only by the Node-side test process.
+
+```sh
+KNOWLEDGE_MODULE_SMOKE=1 KNOWLEDGE_DOCUMENT_ID=synthetic-document-id \
+KNOWLEDGE_ACCOUNT_ID=synthetic-account-id \
+npm run test:smoke -- --grep knowledge_module
+```
+
+Without `KNOWLEDGE_MODULE_SMOKE=1`, this scenario is skipped. The existing smoke journey continues to require `KNOWLEDGE_MODE=demo_fixture`.
 
 ## Structure
 
 ```text
-src/app/                         App Router pages and global styles
-src/components/collection-workspace.tsx  Dashboard and account workspace
-src/lib/api.ts                   Typed FastAPI client and formatting
-public/                          Static assets
+src/app/                 Route composition and global styles
+src/components/layout/   Shared portal shell
+src/components/ui/       Generic data states and visual panels
+src/features/            Accounts, dashboard, manager, runs, conversations,
+                         agents, integrations, knowledge, compliance, reviews, audit
+src/hooks/               Generic cancellable remote reads
+src/lib/http.ts          JSON transport and structured API errors
+src/lib/format.ts        IDR/date/Asia-Jakarta formatting
+src/lib/api.ts           Bootstrap compatibility exports
+src/components/collection-workspace.tsx  Existing portfolio composition
+tests/e2e/               Controlled browser fixtures and failure/race tests
+tests/smoke/             Actual backend/worker/PostgreSQL journeys
 ```
 
-The backend's generated OpenAPI document is the contract source. Update the TypeScript interfaces when changing response models. This bootstrap provides read-only portfolio views; authentication, collection actions, and payment workflows are future work. Use fictional data during development.
+Pydantic models and backend OpenAPI are the executable HTTP contract. Ordinary histories use `{items,total,limit,offset}`; run knowledge is a list of immutable snapshots to support additional retrievals in one run. The evidence panel loads 20 snapshots per request, caches explicitly loaded pages and offers next-page and numbered-page controls. Citations remain pending while history pages are unloaded, then link to the loaded source. Critical context previews are bounded to 20 entries and 8,000 characters per entry. Stored retrieval profiles and provenance hashes are displayed when available. Synthetic source URIs remain plain provenance text. No secret belongs in `NEXT_PUBLIC_*`, a fixture, or the client bundle.

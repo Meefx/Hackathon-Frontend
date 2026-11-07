@@ -7,3 +7,6 @@ out/
 next-env.d.ts
 .DS_Store
 npm-debug.log*
+
+test-results/
+playwright-report/

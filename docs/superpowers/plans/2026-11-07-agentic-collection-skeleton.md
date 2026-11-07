@@ -1,205 +1,206 @@
-# Frontend Agentic Collection Skeleton Implementation Plan
+# Frontend Agentic Collection System Implementation Plan
 
-> **For agentic workers** — Gunakan skill `superpowers:executing-plans` untuk menjalankan rencana per tugas. Langkah memakai checkbox. Implementasi fitur dimulai setelah rencana ditinjau.
+> **For agentic workers** — Gunakan superpowers:executing-plans atau superpowers:subagent-driven-development sesuai metode eksekusi yang dipilih user. Jalankan tugas per milestone dengan bukti verifikasi.
 
-**Goal** — Menambah portal simulasi agent, manager, percakapan account, compliance, audit, dan antrean review pada frontend CollectFlow.
+**Goal** — Menyelesaikan portal collection dengan manager Hermes, run history/progress, knowledge evidence, conversations, compliance, review, dan integration skeleton.
 
-**Architecture** — Next.js mengomposisikan fitur melalui App Router. Typed API client mengonsumsi REST FastAPI yang menyimpan data di PostgreSQL. Backend memiliki aturan bisnis, izin, dan dispatch, sedangkan UI memperlihatkan keputusan dan state aktual.
+**Architecture** — App Router mengomposisikan fitur. Typed client mengonsumsi REST backend. Portal melakukan polling run persisten serta menampilkan status/izin/keputusan yang dikembalikan backend.
 
-**Tech Stack** — Next.js 16, React 19, TypeScript strict, CSS Modules, npm, Node.js 22+ dengan Node 24 untuk CI. Playwright ditambahkan saat implementasi perilaku UI untuk menguji retry, stale response, dan alur pengguna.
+**Tech Stack** — Next.js 16, React 19, TypeScript strict, CSS Modules, npm, Node.js 22+ dan Node 24 pada CI. Playwright ditambahkan pada implementasi perilaku UI beserta script/CI dan lockfile.
 
-**Spec** — Brief dan kontrak dalam dokumen ini menjadi spesifikasi skeleton yang ikut repository. Baca `AGENTS.md` dan `README.md`. Bila workspace lengkap tersedia, `../00_Product_Overview.md` menjelaskan arah produk. Rencana backend berada di repository `Hackathon-Backend` pada path dokumen yang sama.
+**Spec** — Brief, kontrak v2, dan acceptance dalam dokumen ini dapat dipakai saat repo di-clone sendiri. Baca AGENTS.md dan README.md. Rencana backend berada pada path dokumen yang sama di repository backend. Master workspace bernama 2026-11-07-agentic-collection-system-plan.md.
 
-## Brief
+## Brief dan kondisi saat ini
 
-Operator memilih account dan memberi instruksi melalui satu layar manager. UI memperlihatkan langkah specialist yang dikembalikan backend, draft, keputusan compliance, percakapan, dan audit. Operator dapat melakukan simulasi inbound dan meminta simulated dispatch. Hardship, dispute, dan human request terlihat pada antrean review serta state case yang paused dari backend.
+Operator memilih account, membuka manager session, mengirim tugas, mengikuti progress specialist, dan membaca draft beserta sumber knowledge. Operator dapat melakukan simulated inbound/dispatch, meninjau escalation, dan menjalankan tindakan manusia yang diizinkan backend.
 
-Registry memperlihatkan enam role, yaitu `manager`, `collection`, `knowledge`, `qa`, `improvement`, dan `copilot`. Simulator menjalankan empat role pertama. Dua role lainnya ditampilkan sebagai belum tersedia. Card memakai konfigurasi runtime aktual dari API. Hermes menjadi milestone integrasi backend setelah MCP berfungsi.
+Source saat ini mempunyai Overview/Accounts, account dialog, search/filter/pagination, dan GET client. Seluruh layar collection berikut adalah target implementasi. Backend PostgreSQL foundation tersedia; REST collection, Hermes bridge, dan MCP masih direncanakan.
 
-Overview, accounts, search, pagination, aging filter, dan dialog account existing tetap berfungsi. Nama aplikasi tetap CollectFlow dan bahasa UI tetap Inggris. Borrower sintetis dan `simulated_chat` memberi alur demo yang dapat dibaca ulang setelah reload.
-
-## Status dan dependency
-
-| Bagian | Status | Pemilik |
-| --- | --- | --- |
-| Portfolio `/` dan `/accounts` existing | Tersedia pada bootstrap | Frontend |
-| PostgreSQL, migration/import, dan Compose | Selesai dan terverifikasi, 27 test PostgreSQL lulus, Compose serta host startup lulus | Backend database |
-| Kontrak REST collection | Usulan dalam kedua rencana | Backend, sinkronisasi frontend |
-| Shell baru, agent registry, manager, account workspace, review | Direncanakan | Frontend |
-| MCP dan Hermes | Milestone backend terpisah | Backend/integrasi agent |
-
-Implementasi UI dimulai dari transport dan shell, lalu registry, account workspace, manager, serta review. Mock hanya dipakai untuk test terkontrol. Integrasi normal memakai API aktual. Backend harus menyepakati DTO sebelum typed client baru digabungkan.
+Knowledge management berada pada service di backend yang sama dan dimiliki teman user. Portal mengonsumsi evidence dan status melalui REST. Tampilan pengelolaan ingestion/indexing knowledge mengikuti ownership modul tersebut.
 
 ## Global Constraints
 
-- UI mengonsumsi REST melalui typed client. PostgreSQL dan MCP diakses oleh backend.
-- `NEXT_PUBLIC_API_URL` adalah origin publik API. Secret dan credential provider berada pada environment backend.
-- Pertahankan field account, enum aging `current|early|late|critical`, pagination `{items,total,limit,offset}`, dan total dashboard untuk seluruh portfolio.
-- Rupiah berupa integer. UI memformat uang/tanggal dan menampilkan aging yang dihitung backend dengan kalender `Asia/Jakarta`.
-- Backend memutuskan eligibility, waktu contact, verified recipient, compliance, dan dispatch. UI menampilkan `allowed`, `reason_codes`, dan `contact_state` yang dikembalikan API.
-- Data demo sintetis, channel `simulated_chat`, dan mode simulasi terlihat jelas. WhatsApp/email/phone tampil sebagai integrasi direncanakan bila ditampilkan.
-- Ikuti dependency `app -> features -> shared`. Page berisi komposisi, komponen domain berada pada fitur pemilik, dan fitur baru memakai CSS Modules/token visual existing.
-- Sediakan loading, empty, error/retry, success, serta not found. Error API tidak diganti dengan data sukses fiktif.
-- Request read dapat dibatalkan. Respons account lama tidak boleh menimpa account yang sedang dibuka. Retry write memakai idempotency key operasi logis yang sama.
-- Pertahankan semantic HTML, label, focus terlihat, keyboard navigation, dialog focus, skip link, dan layout mobile.
+- Pertahankan nama CollectFlow, bahasa UI Inggris, portfolio existing, integer Rupiah, dan status aging dari backend.
+- Gunakan dependency app -> features -> shared. Page berisi komposisi. Komponen domain, typed API, dan state berada pada fitur pemilik.
+- Semua data domain melalui typed API client. Identity, policy, approval, recipient, serta dispatch ditentukan backend.
+- NEXT_PUBLIC_API_URL adalah public API origin. Secret Hermes/MCP/provider berada pada backend.
+- Data demo sintetis dan mode runtime aktual terlihat. Skeleton channel memperlihatkan unavailable.
+- Sediakan loading, empty, error/retry, success, dan not found. Network error tidak diganti dengan success fixture pada aplikasi normal.
+- Batalkan request read saat navigasi. Write yang responsnya hilang direkonsiliasi memakai request key yang sama.
+- Gunakan HTML semantik, keyboard/focus, dialog yang aksesibel, serta mobile layout. CSS Modules mengikuti token existing.
+- Event timestamp ditampilkan dalam Asia/Jakarta. UI memformat aging/uang sesuai nilai backend.
 
 ## Review Focus
 
-1. API mengembalikan error lama berupa `detail` string atau error baru berupa object. Tugas F0 menguji keduanya dan pesan fallback aman.
-2. Account berubah ketika request sebelumnya belum selesai. Tugas F2 menguji stale response dan pembatalan fetch.
-3. Dispatch berhasil tetapi respons putus, lalu operator retry. Tugas F2 menguji key yang sama dan satu message/delivery.
-4. Policy atau case berubah setelah draft muncul. Tugas F2/F3 menguji UI blocked terbaru dan state paused dari backend.
-5. Account sudah hilang atau link run/review mengarah ke target invalid. Tugas F2/F4 menguji 404, empty list, dan navigasi keyboard.
+1. POST202 berhasil tetapi respons hilang atau halaman direfresh. F2 menguji lookup request_key dan recovery journal.
+2. Polling lambat atau response account lama datang setelah navigasi. F2/F3 menguji monotonic version, no overlap, dan stale response.
+3. Runtime sudah selesai tetapi business artifact invalid atau worker stop belum confirmed. F2 menampilkan keputusan backend tanpa mengasumsikan success.
+4. Knowledge unavailable, no_results, reference revoked, atau citation salah. F4 menguji evidence snapshot dan blocked reason.
+5. Dua resolve/dispatch serta status integration stale. F3/F5/F6 menguji conflict version, idempotency, dan dependency status aktual.
 
-## Kontrak REST yang dikonsumsi
+## Kontrak bersama versi 2
 
-Kontrak berikut adalah usulan yang sama dengan rencana backend. Pydantic dan `/openapi.json` backend menjadi sumber kontrak setelah tersedia. Pertahankan payload `snake_case` tanpa mengganti enum atau field diam-diam.
-
-| Operasi client | HTTP dan hasil |
-| --- | --- |
-| `getAgents(signal?)` | `GET /api/v1/agents` → `{items: AgentDefinition[]}` |
-| `startRun(accountId, request, signal?)` | `POST /api/v1/accounts/{account_id}/runs` → `RunResult` |
-| `getRun(runId, signal?)` | `GET /api/v1/runs/{run_id}` → `RunResult` |
-| `getMessages(accountId, limit, offset, signal?)` | `GET /api/v1/accounts/{account_id}/messages` → `Page<Message>` |
-| `receiveDemoMessage(accountId, request, signal?)` | `POST /api/v1/accounts/{account_id}/messages` → `Message` |
-| `simulateDispatch(messageId, request, signal?)` | `POST /api/v1/messages/{message_id}/simulate-dispatch` → `DispatchResult` |
-| `getReviews(limit, offset, signal?)` | `GET /api/v1/reviews` → `Page<ReviewItem>` |
-| `getAudit(accountId, limit, offset, signal?)` | `GET /api/v1/accounts/{account_id}/audit` → `Page<AuditEvent>` |
-| `getCurrentPolicy(signal?)` | `GET /api/v1/policies/current` → `PolicySnapshot` |
-| `getContactPolicy(accountId, signal?)` | `GET /api/v1/accounts/{account_id}/contact-policy` → `PolicyDecision` |
-
-`Page<T>` memakai `{items,total,limit,offset}`. List baru memakai limit 1–100, offset nonnegatif, default request UI 20, dan urutan `created_at,id` menaik dari backend. Registry berurutan menurut enam role pada brief. URL parameter memakai `URLSearchParams` dan path ID di-encode.
+Kontrak ini adalah target implementasi. Pydantic dan OpenAPI backend menjadi kontrak HTTP yang dijalankan. Kontrak MCP diuji melalui discovery SDK. Endpoint portfolio existing mempertahankan field, enum, pagination, urutan, dan satuan uang.
 
 | DTO | Field dan nilai |
 | --- | --- |
-| `AgentDefinition` | `id`, `name`, `role`, `description`, `runtime_mode` (`simulated|live|unavailable`), `connection_status` (`ready|disconnected|unavailable`) |
-| `RunRequest` | `instruction` string 1–2000 karakter setelah trim, `idempotency_key` UUID, `scenario` (`reminder|hardship|dispute|human_request`) |
-| `RunStep` | `id`, `role`, `outcome` (`completed|blocked|failed`), `summary` |
-| `RunResult` | `id`, `account_id`, `runtime_mode`, `status` (`completed|blocked|failed`), `steps: RunStep[]`, `draft_message_id` nullable, `reason_codes: string[]`, `created_at` |
-| `InboundMessageRequest` | `text` string 1–2000 karakter setelah trim, `idempotency_key` UUID, `scenario` dengan enum yang sama seperti run |
-| `Message` | `id`, `account_id`, `run_id` nullable, `channel=simulated_chat`, `direction` (`inbound|outbound`), `text`, `status` (`received|draft|simulated_sent|blocked`), `created_at` |
-| `DispatchRequest` | `idempotency_key` UUID |
-| `DispatchResult` | `message_id`, `status` (`simulated_sent|blocked`), `reason_codes: string[]`, `audit_event_id` |
-| `ReviewItem` | `id`, `account_id`, `run_id` nullable, `reason` (`hardship|dispute|human_request`), `status=open`, `created_at` |
-| `AuditEvent` | `id`, `account_id`, `run_id` nullable, `action`, `outcome`, `reason_codes`, `correlation_id`, `created_at`, `previous_hash` nullable untuk genesis, `event_hash` |
-| `PolicySnapshot` | `id`, `version`, `timezone`, `contact_days: number[]` dengan ISO Senin=1, `contact_start`, `contact_end`, `holiday_coverage_start`, `holiday_coverage_end`, `holidays: string[]`, `max_proactive_contacts_per_local_date`, `approved_templates: {id,text}[]` |
-| `PolicyDecision` | `account_id`, `allowed: boolean`, `reason_codes: string[]`, `policy_version` nullable bila policy hilang, `contact_state` (`active|paused_human_review`), `evaluated_at` |
+| StartRunRequest | instruction string 1–2000 karakter, task_type follow_up/collector_brief/improvement_review, runtime_mode simulated/hermes, idempotency_key UUID, manager_session_id UUID nullable. demo_scenario reminder/hardship/dispute/human_request hanya diterima dalam mode simulated. |
+| RunAccepted | run_id, manager_session_id, status queued, version, created_at. POST berhasil dan replay mengembalikan HTTP 202 serta identitas run yang sama. |
+| RunSnapshot | id, account_id, manager_session_id, status queued/running/completed/blocked/failed/cancelled/interrupted, outcome nullable, requested_runtime_mode, actual_runtime_mode nullable, phase, steps, artifacts, reason_codes, version, session_turn_index, latest_event_seq, created_at, started_at nullable, finished_at nullable, heartbeat_at nullable, cancellation_requested_at nullable, allowed_actions. |
+| RunStep | id, sequence, role, status pending/running/completed/blocked/failed/skipped, summary, evidence_origin backend_verified/runtime_reported/agent_reported, started_at nullable, finished_at nullable. |
+| RunEvent | sequence, run_id, type, safe_summary, evidence_origin, created_at. Sequence monotonik per run. |
+| AgentDefinition | id, role manager/collection/knowledge/qa/improvement/copilot, name, description, configured, available, runtime_mode simulated/hermes/unavailable, capabilities, unavailable_reason nullable, checked_at nullable. |
+| IntegrationStatus | id, kind runtime/knowledge/mcp/guardrail/channel, implemented, configured, health healthy/unavailable/unknown, execution_mode simulated/hermes/in_process/unavailable, capabilities, disabled_reason nullable, checked_at nullable. Seluruh konfigurasi respons sudah disanitasi. |
+| KnowledgeSnapshot | id, run_id, status ready/no_results/unavailable/error, source_mode knowledge_module/demo_fixture, required, retrieved_at, snapshot_hash, sources, reason_code nullable. |
+| KnowledgeSource | document_id, document_version, snippet_id, citation_id, title, excerpt, content_hash, approved_at, effective_from nullable, effective_until nullable, source_uri nullable. |
+| Message | id, account_id, run_id nullable, channel simulated_chat/whatsapp/email/phone, direction inbound/outbound, text, status received/draft/simulated_sent/blocked, version, citation_ids, created_at. |
+| DraftCandidate | run_id, account_id, execution_attempt_id, template_id nullable, text_with_placeholders, citation_ids, idempotency_key. Backend merender fakta dan membuat message ID. |
+| DispatchRequest | idempotency_key UUID, expected_message_version. Server mengambil approval dan recipient dari state resmi. |
+| DispatchResult | message_id, status simulated_sent/blocked/unavailable, reason_codes, audit_event_id. |
+| ReviewItem | id, account_id, run_id nullable, reason hardship/dispute/human_request/operator_takeover, status open/resolved, version, created_at, resolved_at nullable. |
+| ReviewResolution | decision keep_paused/request_resume, note 1–1000 karakter, expected_version, idempotency_key. Hasil berasal dari service backend. |
+| PolicyDecision | account_id, case_version, allowed, reason_codes, policy_version nullable, contact_state active/paused_human_review/paused_operator, evaluated_at. |
+| ManagerSession | id, account_id, title, created_at, updated_at, last_run_id nullable. |
+| ManagerTurn | id, session_id, turn_index, run_id nullable, role operator/manager, content, created_at. Content berisi instruksi atau ringkasan final yang aman. |
+| RunArtifact | id, run_id, kind draft/qa_report/collector_brief/improvement_proposal, text, message_id nullable, citation_ids, review_state pending/approved/rejected nullable, created_at. QA/proposal merupakan advisory evidence. |
+| FinalRuntimeResult | application_run_id, task_type, summary, artifact_ids, candidate_message_id nullable, citation_ids, review_requested boolean. Semua reference diverifikasi ke data milik run. |
+| KnowledgeQuery | query 1–1000 karakter, purpose collection_draft/qa_check/copilot/improvement_review, locale id-ID, top_k 1–5, deadline_at. Identity/corpus permission berasal dari server context. |
+| ReferenceValidation | valid, checked_at, invalid_citation_ids, reference_version. Semantik snapshot/revocation disepakati dengan pemilik KM. |
+| CaseActionRequest | expected_case_version, idempotency_key, note 1–1000 karakter. Dipakai takeover/resume oleh operator berizin. |
+| CaseActionResult | account_id, case_version, contact_state, action_applied, reason_codes, review_id nullable. |
+| ReviewResolutionResult | review ReviewItem, case CaseActionResult. Penyelesaian review dan hasil permintaan resume dipisahkan. |
+| GuardrailResult | decision allow/block/unavailable, policy_version, evidence_id, classifier_mode live/demo_fixture, evaluated_at. |
+| AuditEvent | id, account_id, run_id nullable, action, actor_kind, outcome, reason_codes, correlation_id, created_at, previous_hash nullable, event_hash. |
 
-Reason code awal adalah `policy_missing`, `holiday_coverage_missing`, `outside_contact_window`, `recipient_unverified`, `case_paused`, `frequency_limit`, `guardrail_rejected`, `approval_expired`, `approval_invalid`, dan `policy_changed`. UI memberi label Inggris dan fallback `Action blocked` untuk code baru sambil tetap menampilkan code untuk diagnosis.
+List biasa memakai items,total,limit,offset dengan limit 1–100. Event polling memakai items,next_sequence,has_more. Tanggal event memakai UTC timezone-aware. Status handling case terpisah dari aging current/early/late/critical. Outcome run dapat berupa draft_created, escalated, brief_created, atau proposal_created.
 
-Business rejection mengembalikan hasil `blocked` yang tercatat. HTTP 404 menandakan resource hilang, 422 input invalid, dan 409 key sama dengan payload berbeda. Error baru memakai `detail={code,message,correlation_id}`. Client tetap mendukung `detail` string pada endpoint existing. Write berhasil dan replay memakai HTTP 200.
+HTTP 404 untuk resource hilang, 422 untuk input invalid, 409 untuk konflik key/payload atau version stale, dan 403 untuk caller yang tidak berizin. Write menolak field tak dikenal. Error baru memakai detail berisi code,message,correlation_id. Client tetap mendukung error detail string pada endpoint portfolio existing.
 
-## Peta file dan kepemilikan
+Reason code awal mencakup policy_missing, holiday_coverage_missing, outside_contact_window, recipient_unverified, case_paused, frequency_limit, guardrail_rejected, approval_expired, approval_invalid, policy_changed, guardrail_unavailable, knowledge_unavailable, no_approved_context, knowledge_reference_invalid, runtime_unavailable, runtime_interrupted, result_invalid, channel_unavailable, dan version_conflict. UI menyediakan fallback aman untuk code baru.
 
-Semua path relatif terhadap root frontend.
+Registry agents/integrations memakai items dengan urutan tetap. History run/session berurutan created_at,id menurun; percakapan/audit menaik. Manager turn berurutan turn_index lalu operator sebelum manager. Default pagination adalah 20. allowed_actions dapat memuat cancel, reconcile, dan retry_safe_step sesuai izin/state. RecoverRunRequest memakai action reconcile/retry_safe_step, expected_version, dan idempotency_key.
 
-| Area | File dan tanggung jawab |
+Contact state diturunkan dari hold aktif. Open review menghasilkan paused_human_review; jika seluruh review sudah resolved tetapi operator hold masih aktif, state menjadi paused_operator; tanpa hold state menjadi active. Seluruh alasan aktif tetap dicatat walaupun UI menampilkan satu contact_state.
+
+## Endpoint target
+
+| Operasi | REST |
 | --- | --- |
-| Transport shared | `src/lib/http.ts` untuk base URL, JSON GET/POST, abort, dan parsing error; `src/lib/format.ts` untuk currency/date/timestamp |
-| Client existing | `src/lib/api.ts` mempertahankan ekspor existing sambil memakai transport/formatter shared |
-| Layout | `src/components/layout/app-shell.tsx`, `app-shell.module.css` untuk navigation, header, skip link, dan content container |
-| Bootstrap consumer | `src/components/collection-workspace.tsx`, `src/app/page.tsx`, `src/app/accounts/page.tsx` memakai shell yang diekstrak tanpa mengubah alur lama |
-| Agents | `src/app/agents/page.tsx`, `src/features/agents/api.ts`, `types.ts`, `components/agent-registry.tsx`, `agents.module.css` |
-| Accounts detail | `src/app/accounts/[accountId]/page.tsx`, `src/features/accounts/api.ts`, `types.ts`, `components/account-workspace.tsx`, `accounts.module.css` |
-| Conversations | `src/features/conversations/api.ts`, `types.ts`, `components/conversation-panel.tsx`, `conversations.module.css` |
-| Runs | `src/features/runs/api.ts`, `types.ts`, `components/run-steps.tsx`, `runs.module.css` |
-| Compliance | `src/features/compliance/api.ts`, `types.ts`, `components/compliance-panel.tsx`, `reason-labels.ts`, `compliance.module.css` |
-| Audit | `src/features/audit/api.ts`, `types.ts`, `components/audit-timeline.tsx`, `audit.module.css` |
-| Manager | `src/app/manager/page.tsx`, `src/features/manager/components/manager-workspace.tsx`, `manager.module.css` |
-| Review | `src/app/review/page.tsx`, `src/features/reviews/api.ts`, `types.ts`, `components/review-queue.tsx`, `reviews.module.css` |
-| Test perilaku | `playwright.config.ts`, `tests/e2e/portfolio.spec.ts`, `agents.spec.ts`, `account-workspace.spec.ts`, `manager.spec.ts`, `review.spec.ts` |
+| Registry agent dan dependency | GET /api/v1/agents; GET /api/v1/integrations |
+| Submit tugas account | POST /api/v1/accounts/{account_id}/runs → HTTP 202 RunAccepted |
+| Run snapshot dan history | GET /api/v1/runs/{run_id}; GET /api/v1/accounts/{account_id}/runs |
+| Event dan recovery | GET /api/v1/runs/{run_id}/events?after_sequence=0&limit=100; POST /api/v1/runs/{run_id}/cancel; POST /api/v1/runs/{run_id}/recover |
+| Manager history | GET /api/v1/accounts/{account_id}/manager-sessions; GET /api/v1/manager-sessions/{session_id}/messages |
+| Evidence knowledge | GET /api/v1/runs/{run_id}/knowledge |
+| Percakapan | GET dan POST /api/v1/accounts/{account_id}/messages |
+| Dispatch demo | POST /api/v1/messages/{message_id}/simulate-dispatch |
+| Policy dan eligibility | GET /api/v1/policies/current; GET /api/v1/accounts/{account_id}/contact-policy |
+| Takeover dan resume case | POST /api/v1/accounts/{account_id}/takeover; POST /api/v1/accounts/{account_id}/resume → CaseActionResult |
+| Review manusia | GET /api/v1/reviews; GET /api/v1/reviews/{review_id}; POST /api/v1/reviews/{review_id}/resolve |
+| Audit | GET /api/v1/accounts/{account_id}/audit |
 
-DTO existing accounts tetap satu definisi. Saat dipindahkan ke `features/accounts/types.ts`, `src/lib/api.ts` mengekspor ulang tipe itu untuk consumer existing. `Page<T>` dapat berada di `src/lib/http.ts` karena dipakai beberapa domain. Manager memakai public API/types runs dan accounts, tanpa membuat DTO run kedua.
+GET history run mendukung request_key UUID yang dibatasi account dan caller. Ini menemukan submission yang responsnya hilang. Cancel/recover memakai idempotency_key dan expected_version. Recovery action dipilih dari allowed_actions backend dan ditolak bila execution masih ambigu. Manager session hanya dapat dipakai pada account dan caller yang memilikinya. Simulasi inbound memakai text, idempotency_key, serta demo_scenario yang eksplisit.
 
-### Tugas F0 — Ekstrak transport dan shell dengan regresi portfolio
+## Tampilan dan peta file
 
-**Pemilik** — Frontend. Dapat dimulai sebelum endpoint collection tersedia.
+| Route/fitur | Tanggung jawab dan file |
+| --- | --- |
+| Shell lintas halaman | src/components/layout/app-shell.tsx dan app-shell.module.css; Overview/Accounts/Manager/Agents/Review/Integrations |
+| Shared transport | src/lib/http.ts, format.ts; ApiError, JSON GET/POST, AbortSignal, dan format timestamp |
+| Bootstrap compatibility | src/components/collection-workspace.tsx, src/lib/api.ts, src/app/page.tsx, src/app/accounts/page.tsx |
+| Agents | src/app/agents/page.tsx; src/features/agents/api.ts, types.ts, components/agent-registry.tsx |
+| Manager | src/app/manager/page.tsx; src/features/manager/api.ts, types.ts, components/manager-workspace.tsx |
+| Run detail | src/app/runs/[runId]/page.tsx; src/features/runs/api.ts, types.ts, hooks/use-run-polling.ts, components/run-detail.tsx |
+| Account workspace | src/app/accounts/[accountId]/page.tsx; src/features/accounts/ dan conversations/ |
+| Knowledge evidence | src/features/knowledge/api.ts, types.ts, components/knowledge-evidence.tsx |
+| Compliance dan audit | src/features/compliance/ dan audit/ untuk read panels, reason labels, timeline |
+| Human review | src/app/review/page.tsx; src/features/reviews/api.ts, types.ts, components/review-queue.tsx dan review-detail.tsx |
+| Integration status | src/app/integrations/page.tsx; src/features/integrations/api.ts, types.ts, components/integration-status.tsx |
+| Behavioral tests | playwright.config.ts; tests/e2e/ per user flow; .github/workflows/checks.yml |
 
-**File** — Transport/layout/bootstrap consumer pada peta file, `package.json`, `package-lock.json`, `playwright.config.ts`, `tests/e2e/portfolio.spec.ts`, `.github/workflows/checks.yml`, `README.md`.
+Setiap fitur menambah CSS Module saat style dibutuhkan. DTO mempunyai satu definisi publik per fitur. Transport/existing API dapat mengekspor ulang selama consumer dipindahkan. Manager memakai public runs/accounts API. Page atau container account mengomposisikan panel lintas fitur.
 
-**Interface** — `request<T>(path: string, options?: {method?: "GET" | "POST"; body?: unknown; signal?: AbortSignal}): Promise<T>` dan `ApiError` dengan `status`, `code?`, `correlationId?`. `AppShell({section,children})` menerima section `overview|accounts|agents|manager|review`. Ekspor `getDashboard`, `getAccounts`, `currency`, `formatDate`, dan `statusLabels` tetap kompatibel.
+## F0 — Kunci typed client dan shell
 
-- [ ] Tambahkan dev dependency `@playwright/test`, script `test:e2e`, dan Chromium setup. Konfigurasi webServer dev port 3000 dan API request interception untuk fixture sintetis. Tambahkan CI test setelah server/browser siap.
-- [ ] Tulis test portfolio untuk total seluruh portfolio, filter reset pagination, search, detail dialog, keyboard focus, error/retry, error `detail` string/object, dan navigasi section baru. Jalankan `npx playwright install chromium` lalu `npm run test:e2e -- tests/e2e/portfolio.spec.ts`. Pastikan test section baru gagal sebelum shell berubah.
-- [ ] Pindahkan transport/formatter ke shared tanpa implementasi duplikat. Parse response non-JSON/network failure dengan pesan aman. Abort tidak menjadi error pengguna. Gunakan JSON POST dan `Content-Type` hanya bila ada body.
-- [ ] Ekstrak shell dan CSS terkait dari bootstrap. Navigation berisi Overview, Accounts, Agents, Manager, Review. Update kedua route existing dan workspace, pertahankan dialog serta perilaku lamanya.
-- [ ] Jalankan test tugas ini, `npm run typecheck`, dan `npm run build`. Expected seluruh alur existing dan section navigation lulus. Review diff lalu buat commit tugas ini saat implementasi.
+**Pemilik** — Subagent frontend, root/backend untuk kontrak. **File** — shared transport/shell/bootstrap consumers; package.json/package-lock.json; Playwright config, CI, tests/e2e/portfolio.spec.ts.
 
-### Tugas F1 — Tambahkan registry agent
+- [ ] Cocokkan DTO/endpoints v2 dengan backend sebelum feature client digabungkan. Error parsing mendukung detail string existing dan detail object baru.
+- [ ] Tambahkan Playwright minimal dan script test:e2e saat test perilaku pertama dibuat. Test existing search, filters reset pagination, whole-portfolio totals, dialog/focus, 404, retry, dan mobile.
+- [ ] Ekstrak fetch/error/formatters dan shell dari bootstrap, lalu pindahkan consumer bertahap. Pertahankan cancellation dan status labels existing.
+- [ ] Tambahkan navigation Overview, Accounts, Manager, Agents, Review, dan Integrations. Reuse visual tokens.
+- [ ] Jalankan npm run typecheck, npm run build, serta portfolio browser suite. Expected regresi existing lulus.
 
-**Pemilik** — Frontend. Bergantung pada F0 dan `GET /agents` backend.
+## F1 — Registry agent dan status dependency
 
-**File** — Route/fitur agents pada peta file dan `tests/e2e/agents.spec.ts`.
+**Pemilik** — Frontend. **File** — agents/integrations features; route pages; tests/e2e/agents.spec.ts, integrations.spec.ts.
 
-**Interface** — `getAgents(signal?: AbortSignal): Promise<{items: AgentDefinition[]}>`. Types mengikuti kontrak. Page hanya mengomposisikan shell dan `AgentRegistry`.
+- [ ] Tulis tests enam role, configured tetapi unavailable, runtime disconnected, health stale, API gagal, dan capability yang belum tersedia.
+- [ ] Implementasikan registry dari AgentDefinition. Tampilkan capability, mode aktual, dan unavailable_reason. Profil yang dikonfigurasi tidak otomatis ditampilkan connected.
+- [ ] Implementasikan Integrations untuk Hermes, MCP, KM, policy classifier, simulated_chat, WhatsApp, Email, dan Phone. Skeleton provider memperlihatkan unavailable serta alasan aman dari API.
+- [ ] Settings/status menampilkan konfigurasi publik yang sudah disanitasi backend. Credential input/management menjadi milestone tersendiri bila dibutuhkan.
+- [ ] Jalankan browser suite fitur, typecheck, dan build. Verifikasi keyboard dan layar sempit.
 
-- [ ] Tulis test enam role dengan empat `simulated/ready` dan improvement/copilot `unavailable`. Uji loading, empty registry, error/retry, serta payload `disconnected` yang tetap ditampilkan aktual.
-- [ ] Jalankan `npm run test:e2e -- tests/e2e/agents.spec.ts` dan pastikan gagal sebelum route tersedia.
-- [ ] Implementasikan card role, deskripsi, mode, dan connection status dari API. Gunakan label Inggris seperti `Simulated` dan `Unavailable`. Link manager membuka `/manager`. Tambahkan CSS Module sesuai token existing.
-- [ ] Jalankan test tugas ini, `npm run typecheck`, dan `npm run build`. Periksa mobile serta keyboard. Review diff lalu buat commit tugas ini saat implementasi.
+## F2 — Manager session dan persisted run
 
-### Tugas F2 — Tambahkan account workspace dan percakapan
+**Pemilik** — Frontend. **File** — manager/runs features; manager route; runs/[runId] route; tests/e2e/manager.spec.ts, run-recovery.spec.ts.
 
-**Pemilik** — Frontend. Bergantung pada F0 dan endpoint accounts/messages/audit/contact-policy/dispatch backend.
+- [ ] Tulis tests account search di seluruh portfolio, session/follow-up history, tiga task type, POST202, queued/running/completed/blocked/failed/interrupted/cancelled.
+- [ ] Tulis tests dua run pada session yang sama, task kedua menunggu dan memakai history tervalidasi task pertama, serta interrupted yang menahan kelanjutan. Tulis tests lost response, duplicate click, refresh, network retry, interrupted recovery, cancel yang masih diminta, dan run dari account lain.
+- [ ] Implementasikan manager dengan account selector, instruksi, task type, serta runtime mode dari capability server. Source mode simulated/hermes terlihat pada submission dan hasil.
+- [ ] Simpan journal minimum account ID, request key, session ID, dan run ID pada storage browser. Journal tidak menyimpan isi percakapan/credential. Setelah reload gunakan lookup request_key atau run ID untuk melanjutkan GET.
+- [ ] Poll snapshot/event backend setiap dua detik selama aktif, tanpa overlap, dengan backoff dan AbortSignal. Terapkan hanya response version/sequence baru. Network failure menampilkan Status update delayed; status gagal hanya berasal dari backend.
+- [ ] Tampilkan ordered steps, evidence_origin, artefak, reason codes, serta actual runtime/profile yang tersedia. Jangan membuat specialist progress yang tidak dikonfirmasi.
+- [ ] Cancel/recover hanya memakai allowed_actions backend dan expected_version. POST retry mempertahankan key serta payload. Fresh submission hanya terjadi atas tindakan pengguna yang jelas.
+- [ ] Jalankan tests fitur, typecheck, dan build. Expected reload/reconnect melanjutkan run yang sama tanpa write baru.
 
-**File** — Route detail accounts, fitur accounts/conversations/compliance/audit/runs pada peta file, `src/components/collection-workspace.tsx`, `tests/e2e/account-workspace.spec.ts`.
+## F3 — Account workspace dan simulated conversations
 
-**Interface** — `getAccount(accountId, signal?) -> Promise<Account>`, client percakapan/policy/audit pada tabel kontrak, serta `AccountWorkspace({accountId: string})`. Account detail memakai service GET existing. Account dialog mendapat link `Open workspace` dan tetap dapat ditutup seperti sebelumnya.
+**Pemilik** — Frontend. **File** — accounts/conversations/compliance/audit features; detail route; bootstrap detail link; tests/e2e/account-workspace.spec.ts.
 
-- [ ] Tulis test direct URL account valid/404, empty conversation/audit, GET failure terpisah, pagination, dan delayed response account A yang selesai setelah navigasi ke B. Assert seluruh panel tetap milik B.
-- [ ] Tulis test inbound dengan scenario eksplisit, validasi kosong/2001 karakter, simulated dispatch, blocked reason, HTTP 409, dan retry sesudah respons dispatch terputus. Assert retry memakai UUID yang sama dengan payload awal.
-- [ ] Jalankan `npm run test:e2e -- tests/e2e/account-workspace.spec.ts` dan pastikan gagal sebelum fitur tersedia.
-- [ ] Implementasikan typed client dan panel account facts, conversation, draft, contact policy, audit, serta run steps saat run tersedia. Pindahkan `getAccounts` ke public API fitur accounts dan ekspor ulang dari `src/lib/api.ts` agar consumer lama tetap memakai satu implementasi. Baca run melalui query `run_id` pada URL setelah manager navigation dan validasi `run.account_id` cocok dengan account route.
-- [ ] Implementasikan form simulasi inbound dan tombol simulated dispatch. Buat key melalui `crypto.randomUUID()` sekali per aksi logis, pertahankan key/payload untuk retry, dan cegah submit bersamaan. Membatalkan request write tidak dianggap membatalkan write server. Refetch history/policy/audit setelah outcome terkonfirmasi.
-- [ ] Tampilkan `paused_human_review` dari `PolicyDecision`, reason code, dan `simulated_sent` dari backend. Abaikan respons stale dan batalkan read saat unmount/account berganti. Format event timestamp eksplisit dalam `Asia/Jakarta`.
-- [ ] Jalankan test tugas ini, `npm run typecheck`, dan `npm run build`. Periksa focus, mobile, serta GET reload yang tidak membuat message baru. Review diff lalu buat commit tugas ini saat implementasi.
+- [ ] Tulis tests account valid/404, empty/paginated history, delayed A response setelah navigasi B, approval expired, policy berubah, contact paused, HTTP409, dan retry dispatch sesudah respons putus.
+- [ ] Tambahkan Open workspace pada account dialog. Compose account facts, handling state, conversation, candidate draft, contact policy, run history, knowledge evidence, dan audit.
+- [ ] Implementasikan explicit simulated inbound dan dispatch. Gunakan satu idempotency key per logical action, cegah duplicate click, serta refetch message/policy/audit setelah outcome terkonfirmasi.
+- [ ] Tombol dispatch mengikuti server capabilities dan decision. Backend tetap memeriksa aturan saat tombol diklik. Tampilkan simulated_sent/blocked/unavailable sesuai response.
+- [ ] Render event timestamp dalam Asia/Jakarta. Request lama tidak boleh menimpa state account yang baru.
+- [ ] Jalankan browser tests, typecheck, build, keyboard/mobile verification. GET reload tidak membuat message baru.
 
-### Tugas F3 — Hubungkan satu layar manager
+## F4 — Evidence knowledge dan artefak specialist
 
-**Pemilik** — Frontend. Bergantung pada F1/F2 dan endpoint run backend.
+**Pemilik** — Frontend untuk tampilan; backend adapter serta teman untuk service KM. **File** — knowledge feature dan panel run/account; tests/e2e/knowledge-evidence.spec.ts.
 
-**File** — Route/fitur manager, public API/types runs dan accounts, `tests/e2e/manager.spec.ts`.
+- [ ] Tulis tests ready, no_results, unavailable, error, revoked/version changed, malformed citation, source URI tidak tersedia, dan demo_fixture.
+- [ ] Tampilkan snapshot yang dipakai run, bukan query ulang sumber terbaru saat membuka history. Source title, document version, citation/snippet IDs, excerpt, hash/reference, dan retrieval time dapat diperiksa.
+- [ ] Tautkan citation draft/QA/brief/proposal pada sumber snapshot. Render semua teks sebagai data. Source URI hanya menjadi tautan yang aman bila tervalidasi.
+- [ ] Required knowledge failure menampilkan alasan blocked dari backend dan link status KM pada Integrations. Layar portfolio serta review tetap dapat dibaca.
+- [ ] Tampilkan copilot brief dan improvement proposal sebagai artefak run. State proposal menunggu review dan perubahan SOP mengikuti workflow KM yang disepakati kemudian.
+- [ ] Jalankan tests fitur, typecheck, build, serta satu browser flow dengan service KM aktual ketika tersedia.
 
-**Interface** — `startRun(accountId: string, request: RunRequest, signal?: AbortSignal): Promise<RunResult>` dan `getRun(runId, signal?): Promise<RunResult>`. Account selector memakai client accounts existing dengan search/pagination agar account di luar halaman pertama dapat dipilih.
+## F5 — Human review, takeover, dan audit
 
-- [ ] Tulis test memilih account hasil search, validasi instruksi, empat scenario, serta completed/blocked/failed. Uji network retry mempertahankan instruksi, payload, dan key. Uji account berubah tidak menampilkan hasil run account sebelumnya.
-- [ ] Jalankan `npm run test:e2e -- tests/e2e/manager.spec.ts` dan pastikan gagal sebelum route tersedia.
-- [ ] Implementasikan manager instruction, account selector, scenario selector, dan submit. Tampilkan runtime aktual serta ordered specialist steps dari `RunResult`. Tampilkan outcome gagal dan blocked secara terpisah.
-- [ ] Berikan link `/accounts/{accountId}?run_id={runId}` untuk membuka run/draft yang persisted. Pertahankan scope account dan state retry. Refetch decision setelah run escalation agar UI menunjukkan pause terbaru.
-- [ ] Jalankan test tugas ini, `npm run typecheck`, dan `npm run build`. Periksa keyboard dan layar mobile. Review diff lalu buat commit tugas ini saat implementasi.
+**Pemilik** — Frontend. **File** — reviews/audit features; review route; tests/e2e/review.spec.ts.
 
-### Tugas F4 — Tampilkan antrean review manusia
+- [ ] Tulis tests hardship/dispute/human request/operator takeover, open review lain, double submit resolve, expected_version stale, error/retry, pagination, dan keyboard navigation.
+- [ ] Implementasikan queue/detail yang memuat account/run/snapshot links, alasan escalation, pause state, dan timeline.
+- [ ] Implementasikan takeover melalui endpoint case dengan expected_case_version dan idempotency key. Tampilkan requested stop terpisah dari confirmed cancellation.
+- [ ] Tindakan review keep_paused/request_resume memakai expected_version dan menampilkan ReviewResolutionResult. Review dapat resolved sementara case masih paused. Tombol resume case memakai endpoint terpisah dengan expected_case_version setelah keep_paused. UI merender alasan penolakan jika review/hold lain masih aktif.
+- [ ] Setelah keputusan manusia, refetch review/contact policy/audit. Tombol resume/dispatch mengikuti allowed actions terbaru.
+- [ ] Audit menampilkan kejadian, actor, correlation, policy/knowledge references, serta outcome. Replay berupa pembacaan.
+- [ ] Jalankan suite fitur, typecheck, dan build. Expected review/inbound di luar jam contact tetap terbaca dan keputusan persisten.
 
-**Pemilik** — Frontend. Bergantung pada F0/F2 dan endpoint review backend.
+## F6 — Verifikasi portal lengkap terhadap backend aktual
 
-**File** — Route/fitur reviews pada peta file dan `tests/e2e/review.spec.ts`.
+**Pemilik** — Frontend, root, backend, dan integrasi Hermes/MCP. **File** — tests/e2e/demo-journey.spec.ts, README.md, env example dan CI bila diperlukan.
 
-**Interface** — `getReviews(limit: number, offset: number, signal?: AbortSignal): Promise<Page<ReviewItem>>`. Review menampilkan record open dan link workspace account, ditambah query `run_id` bila tersedia.
+- [ ] Jalankan portfolio regression dan seluruh browser tests dengan fixture terkontrol untuk race/failure.
+- [ ] Jalankan perjalanan melalui backend PostgreSQL aktual untuk allowed draft/dispatch, blocked contact, escalation/resolve, retry, refresh, dan recovery worker restart.
+- [ ] Verifikasi task collector_brief serta improvement_review dengan artefak dan evidence yang dapat dibuka.
+- [ ] Hubungkan Hermes aktual bila runtime tersedia dan verifikasi ketiga task type, runtime-backed profile evidence semua enam role, source evidence, candidate, serta business gate dengan classifier live. Uji classifier unavailable menghasilkan blocked draft karantina. Bedakan bukti fixture/simulator dari runtime aktual.
+- [ ] Verifikasi Integrations ketika KM/Hermes tidak tersedia dan ketika MCP hidup. Ketiga provider skeleton tetap menampilkan unavailable tanpa receipt palsu.
+- [ ] Jalankan npm run typecheck, npm run build, dan npm run test:e2e. Catat versi browser, cakupan, command serta hasil aktual.
+- [ ] Update README dengan start order backend/worker/frontend/Hermes, mode demo, dependency status, dan recovery.
 
-- [ ] Tulis test hardship/dispute/human request, review tanpa run, pagination, empty/error/retry, invalid account target, serta keyboard navigation ke workspace yang paused.
-- [ ] Jalankan `npm run test:e2e -- tests/e2e/review.spec.ts` dan pastikan gagal sebelum route tersedia.
-- [ ] Implementasikan read-only review queue dengan reason, timestamp Jakarta, account ID, dan open status. Link memakai ID backend. State pause dibaca kembali pada workspace melalui contact-policy.
-- [ ] Jalankan test tugas ini, `npm run typecheck`, dan `npm run build`. Review diff lalu buat commit tugas ini saat implementasi.
+## Penerimaan frontend
 
-### Tugas F5 — Verifikasi integrasi API aktual
+Portal selesai ketika operator dapat menggunakan registry, manager session/run, account workspace, knowledge evidence, review/resolve, serta integration status melalui REST aktual. Riwayat bertahan setelah reload dan UI mengikuti state backend saat error, pause, cancellation, atau recovery.
 
-**Pemilik** — Frontend dan backend. Bergantung pada F1–F4 dan REST backend.
-
-**File** — `README.md`, `.env.example` bila cara menjalankan berubah, dan test terdampak bila ditemukan regresi.
-
-- [ ] Jalankan backend PostgreSQL sesuai README backend. Jalur Compose yang disiapkan adalah `docker compose up --build -d --wait`, lalu `docker compose exec backend uv run --no-sync python -m app.seed` dari root backend. Fondasi database sudah diverifikasi melalui Compose dan host startup. Verifikasi alur collection dilakukan setelah endpoint fitur tersedia.
-- [ ] Dari root frontend jalankan `npm ci` bila dependency belum tersedia, lalu `npm run dev`. Gunakan `NEXT_PUBLIC_API_URL=http://localhost:8000` dan origin frontend yang diizinkan backend.
-- [ ] Verifikasi allowed reminder → draft → simulated dispatch → conversation/audit melalui UI normal. Retry dispatch dan pastikan satu delivery. Jalankan blocked contact dan hardship → review → paused case. Reload setiap layar untuk memastikan persistence.
-- [ ] Periksa ulang overview, total portfolio, search/filter/pagination, account dialog, dan mobile/keyboard. Cocokkan request/response aktual terhadap OpenAPI, termasuk 404/422/409 dan blocked outcome.
-- [ ] Jalankan `npm run test:e2e`, `npm run typecheck`, dan `npm run build`. Catat test ter-mock dan browser terhadap backend aktual secara terpisah.
-- [ ] Update README dengan start order, requirement backend, mode simulator, dan cakupan verifikasi aktual. Laporkan hasil frontend terpisah dari handshake MCP serta koneksi Hermes milik backend. Review diff lalu buat commit tugas ini saat implementasi.
-
-## Batas penerimaan
-
-Frontend selesai ketika operator dapat memakai registry, manager, account workspace, dan review melalui REST aktual untuk allowed reminder, blocked contact, dan escalation manusia. Setiap data-backed screen memiliki state lengkap dan alur existing tetap berfungsi. Browser UI tidak menjadi pemilik aturan dispatch.
-
-WhatsApp/email/phone nyata, live voice, rekonsiliasi pembayaran, deployment improvement otomatis, dan autentikasi remote/multi-tenant menjadi milestone berikutnya. MCP/Hermes dibuktikan dalam rencana backend.
-
-## Verifikasi dokumen
-
-README, panduan repo, routes, client/types existing, dan plan gabungan awal telah dibaca. Semua file fitur dan test di atas masih direncanakan. Framework test frontend belum terpasang pada bootstrap. Command `test:e2e` berlaku setelah F0 menambahkan dependency/script. Penyusunan dokumen tidak menjalankan build atau browser.
+Hermes/MCP acceptance dimiliki backend/integration lane dan terlihat pada portal sebagai status aktual. Source aplikasi dan dependency frontend pada turn ini masih baseline existing. Test runner baru akan ditambahkan saat F0 diimplementasikan.

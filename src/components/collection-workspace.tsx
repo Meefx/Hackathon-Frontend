@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { AppShell } from "@/components/layout/app-shell";
 import { useEffect, useRef, useState } from "react";
-import {
-  type Account, type AccountPage, type CollectionStatus, type Dashboard,
-  currency, formatDate, getAccounts, getDashboard, statusLabels,
-} from "@/lib/api";
+import type { Account, AccountPage, CollectionStatus } from "@/features/accounts/types";
+import type { Dashboard } from "@/features/dashboard/types";
+import { getAccounts } from "@/features/accounts/api";
+import { getDashboard } from "@/features/dashboard/api";
+import { statusLabels } from "@/features/accounts/constants";
+import { currency, formatDate } from "@/lib/format";
 
 function Icon({ kind, size = 20 }: { kind: "grid" | "accounts" | "arrow" | "search" | "refresh"; size?: number }) {
   const paths = {
@@ -73,21 +76,7 @@ export function CollectionWorkspace({ view }: { view: "overview" | "accounts" })
     setOffset(0);
   }
 
-  return <div className="workspace">
-    <a className="skip-link" href="#main">Skip to content</a>
-    <aside className="sidebar">
-      <Link href="/" className="brand"><span className="brand-mark">c<span>f</span></span>CollectFlow<span className="brand-dot">.</span></Link>
-      <div className="workspace-label">COLLECTIONS WORKSPACE</div>
-      <nav aria-label="Main navigation">
-        <Link href="/" className={`nav-link ${view === "overview" ? "active" : ""}`} aria-current={view === "overview" ? "page" : undefined}><Icon kind="grid" />Overview</Link>
-        <Link href="/accounts" className={`nav-link ${view === "accounts" ? "active" : ""}`} aria-current={view === "accounts" ? "page" : undefined}><Icon kind="accounts" />Accounts</Link>
-      </nav>
-      <div className="sidebar-bottom"><span className="small-dot" />Development workspace<p>A clearer view of every account.</p><span className="version">COLLECTFLOW / V0.1</span></div>
-    </aside>
-
-    <main id="main" className="main">
-      <header className="topbar"><span>Workspace <span className="slash">/</span> <strong>{view === "overview" ? "Overview" : "Accounts"}</strong></span><span className="demo-badge">Demo workspace</span></header>
-      <div className="content">
+  return <AppShell title={view === "overview" ? "Overview" : "Accounts"}>
         <div className="page-heading"><div><div className="eyebrow">YOUR PORTFOLIO, IN FOCUS</div><h1>{view === "overview" ? "Collections overview" : "Collection accounts"}</h1><p>{view === "overview" ? "Keep track of balances. Know where to focus next." : "Find an account and review its collection status."}</p></div><button className="button" onClick={() => setRevision(value => value + 1)}><Icon kind="refresh" size={16} />Refresh</button></div>
 
         {view === "overview" && <>
@@ -118,11 +107,9 @@ export function CollectionWorkspace({ view }: { view: "overview" | "accounts" })
           {page && !loading && !error && page.total > 0 && <div className="pagination"><span>Showing {offset + 1}–{Math.min(offset + page.limit, page.total)} of {page.total} accounts</span><div><button className="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - page.limit))}>Previous</button><button className="button" disabled={offset + page.limit >= page.total} onClick={() => setOffset(offset + page.limit)}>Next</button></div></div>}
         </section>
         <footer className="footer"><span>CollectFlow</span><span>Clarity for every collection.</span></footer>
-      </div>
-    </main>
 
     <dialog ref={dialog} onClose={() => setSelected(null)} onClick={event => { if (event.target === dialog.current) setSelected(null); }} aria-labelledby="detail-title">
-      {selected && <div className="dialog-content"><div className="dialog-heading"><span className="eyebrow">ACCOUNT DETAILS</span><button className="close-button" onClick={() => setSelected(null)} aria-label="Close account details">×</button></div><h2 id="detail-title">{selected.borrower_name}</h2><p>{selected.loan_reference} · {selected.id}</p><div className="detail-balance"><span>Outstanding balance</span><strong>{currency(selected.outstanding_amount)}</strong></div><dl><div><dt>Status</dt><dd><span className={`status-pill ${selected.status}`}>{statusLabels[selected.status]}</span></dd></div><div><dt>Days past due</dt><dd>{selected.days_past_due}</dd></div><div><dt>Due date</dt><dd>{formatDate(selected.due_date)}</dd></div><div><dt>Assigned to</dt><dd>{selected.assigned_to}</dd></div></dl><button className="button primary" onClick={() => setSelected(null)}>Done</button></div>}
+      {selected && <div className="dialog-content"><div className="dialog-heading"><span className="eyebrow">ACCOUNT DETAILS</span><button className="close-button" onClick={() => setSelected(null)} aria-label="Close account details">×</button></div><h2 id="detail-title">{selected.borrower_name}</h2><p>{selected.loan_reference} · {selected.id}</p><div className="detail-balance"><span>Outstanding balance</span><strong>{currency(selected.outstanding_amount)}</strong></div><dl><div><dt>Status</dt><dd><span className={`status-pill ${selected.status}`}>{statusLabels[selected.status]}</span></dd></div><div><dt>Days past due</dt><dd>{selected.days_past_due}</dd></div><div><dt>Due date</dt><dd>{formatDate(selected.due_date)}</dd></div><div><dt>Assigned to</dt><dd>{selected.assigned_to}</dd></div></dl><div className="pagination"><Link className="button primary" href={`/accounts/${selected.id}`}>Open workspace</Link><button className="button" onClick={() => setSelected(null)}>Done</button></div></div>}
     </dialog>
-  </div>;
+  </AppShell>;
 }
