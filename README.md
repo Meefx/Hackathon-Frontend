@@ -56,6 +56,16 @@ npm run test:smoke
 
 Smoke tests create persistent synthetic tasks/messages/reviews and intentionally exercise human pause. They require at least one currently eligible synthetic account, and verify follow up → evidence → reload → dispatch → escalation → resolve, plus collector brief and improvement proposal. They do not prove live Hermes, live classifier, live knowledge retrieval, or remote MCP connectivity; verify those with the backend integration suite and operational evidence.
 
+The separate knowledge-module smoke uses an explicitly prepared synthetic critical document, a contact-eligible synthetic account, and backend `KNOWLEDGE_MODE=knowledge_module` with the in-process trust service. The document must be approved before the test. It is retired by the test and dispatch must then be blocked. Run it separately from the demo-fixture journey. Set `TRUST_API_TOKEN` in the test process environment. Credentials are read only by the Node-side test process.
+
+```sh
+KNOWLEDGE_MODULE_SMOKE=1 KNOWLEDGE_DOCUMENT_ID=synthetic-document-id \
+KNOWLEDGE_ACCOUNT_ID=synthetic-account-id \
+npm run test:smoke -- --grep knowledge_module
+```
+
+Without `KNOWLEDGE_MODULE_SMOKE=1`, this scenario is skipped. The existing smoke journey continues to require `KNOWLEDGE_MODE=demo_fixture`.
+
 ## Structure
 
 ```text
@@ -73,4 +83,4 @@ tests/e2e/               Controlled browser fixtures and failure/race tests
 tests/smoke/             Actual backend/worker/PostgreSQL journeys
 ```
 
-Pydantic models and backend OpenAPI are the executable HTTP contract. Ordinary histories use `{items,total,limit,offset}`; run knowledge is a list of immutable snapshots to support additional retrievals in one run. The evidence panel reads every HTTP page before matching citations and renders the complete history so artifact links resolve to later retrievals. No secret belongs in `NEXT_PUBLIC_*`, a fixture, or the client bundle.
+Pydantic models and backend OpenAPI are the executable HTTP contract. Ordinary histories use `{items,total,limit,offset}`; run knowledge is a list of immutable snapshots to support additional retrievals in one run. The evidence panel loads 20 snapshots per request, caches explicitly loaded pages and offers next-page and numbered-page controls. Citations remain pending while history pages are unloaded, then link to the loaded source. Critical context previews are bounded to 20 entries and 8,000 characters per entry. Stored retrieval profiles and provenance hashes are displayed when available. Synthetic source URIs remain plain provenance text. No secret belongs in `NEXT_PUBLIC_*`, a fixture, or the client bundle.

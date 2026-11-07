@@ -345,38 +345,130 @@ test("account navigation cannot apply old account result", async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test("knowledge history pages preserve snapshot identity and citation evidence", async ({
-  page,
-}) => {
+test("knowledge history loads bounded pages and resolves a citation after snapshot 20", async ({ page }) => {
+  const offsets: number[] = [];
   await page.route("**/runs/run-1/knowledge?*", (route) => {
-    const offset = Number(
-      new URL(route.request().url()).searchParams.get("offset"),
-    );
-    return route.fulfill({
-      json: {
-        ...list([
-          {
-            id: `k${offset}`,
-            run_id: "run-1",
-            status: "ready",
-            source_mode: "demo_fixture",
-            required: true,
-            retrieved_at: time,
-            snapshot_hash: `snapshot-${offset}`,
-            sources: [],
-          },
-        ]),
-        total: 21,
-        limit: 20,
-        offset,
-      },
-    });
+    const offset = Number(new URL(route.request().url()).searchParams.get("offset"));
+    offsets.push(offset);
+    return route.fulfill({ json: {
+      items: Array.from({ length: offset === 0 ? 20 : 1 }, (_, index) => ({
+        id: `k${offset + index}`, run_id: "run-1", status: "ready",
+        source_mode: "knowledge_module", required: true, retrieved_at: time,
+        snapshot_hash: `snapshot-${offset + index}`,
+        sources: offset === 20 ? [{ document_id: "doc-late", document_version: "2",
+          snippet_id: "late", citation_id: "C1", title: "Later approved SOP",
+          excerpt: "Respect the borrower.", content_hash: "late-hash", approved_at: time,
+          effective_from: null, effective_until: null, source_uri: "synthetic://approved/sop" }] : [],
+      })), total: 21, limit: 20, offset,
+    } });
   });
   await page.goto("/runs/run-1");
-  await expect(
-    page.getByText("Snapshot snapshot-0", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Snapshot snapshot-20", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Snapshot snapshot-0", { exact: true })).toBeVisible();
+  await expect(page.getByText("Citation C1 is awaiting unloaded snapshot pages", { exact: false })).toBeVisible();
+  expect([...new Set(offsets)]).toEqual([0]);
+  await expect(page.getByText("has no matching source", { exact: false })).toHaveCount(0);
+  await page.getByRole("button", { name: "Load next snapshots", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Later approved SOP" })).toBeVisible();
+  await expect(page.getByText("awaiting unloaded snapshot pages", { exact: false })).toHaveCount(0);
+  await page.getByRole("link", { name: "C1", exact: true }).click();
+  await expect(page.locator("#evidence-run-1-C1")).toBeInViewport();
+  expect([...new Set(offsets)]).toEqual([0, 20]);
+});
+
+test("knowledge module preserves nullable provenance, critical context and actual retrieval profile on reload", async ({ page }) => {
+  await page.route("**/runs/run-1/knowledge?*", (route) => route.fulfill({ json: list([{
+    id: "km-1", run_id: "run-1", status: "ready", source_mode: "knowledge_module",
+    required: true, retrieved_at: time, snapshot_hash: "immutable-km-hash", snapshot_hash_version: 2,
+    reason_code: null,
+    sources: [{ document_id: "doc-km", document_version: "3", snippet_id: "chunk-km",
+      citation_id: "C1", title: "Approved critical policy", excerpt: "Use respectful language.",
+      content_hash: "provenance-hash", document_hash: "raw-document-hash", snippet_hash: "raw-snippet-hash",
+      approved_at: time, effective_from: null, effective_until: null, source_uri: "synthetic://policy/3" }],
+    critical_context: [{ document_id: "doc-km", document_version: "3", chunk_id: "context-1",
+      locator: "page 2", text: "Critical full-source evidence stays untrusted.", content_hash: "context-hash" }],
+    verification_profile: { embedding_profile: "hashed-bow-v1", semantic_embeddings: false,
+      source_correctness_verified_by_code: false, review_depth: "critical", retrieved_text_is_untrusted: true,
+      critical_integrity_checks: true, context_expansion: "full_source_within_budget" },
+  }]) }));
+  await page.goto("/runs/run-1");
+  for (let pass = 0; pass < 2; pass++) {
+    await expect(page.getByText("Snapshot immutable-km-hash", { exact: true })).toBeVisible();
+    await expect(page.getByText("Critical full-source evidence stays untrusted.", { exact: true })).toBeVisible();
+    await expect(page.getByText("hashed-bow-v1", { exact: true })).toBeVisible();
+    await expect(page.getByText("Semantic embeddings disabled", { exact: true })).toBeVisible();
+    await expect(page.getByText("Source correctness unverified by code", { exact: true })).toBeVisible();
+    await expect(page.getByText("Document hash raw-document-hash", { exact: true })).toBeVisible();
+    await expect(page.getByText("Snippet hash raw-snippet-hash", { exact: true })).toBeVisible();
+    await expect(page.getByText("synthetic://policy/3", { exact: true })).toBeVisible();
+    await expect(page.locator('a[href^="synthetic:"]')).toHaveCount(0);
+    if (pass === 0) await page.reload();
+  }
+});
+
+for (const reason of ["knowledge_unavailable", "knowledge_reference_invalid"]) {
+  test(`knowledge module explains ${reason} without changing stored evidence`, async ({ page }) => {
+    await page.route("**/runs/run-1/knowledge?*", (route) => route.fulfill({ json: list([{
+      id: "km-blocked", run_id: "run-1", status: "unavailable", source_mode: "knowledge_module",
+      required: true, retrieved_at: time, snapshot_hash: "stored-blocked-hash", sources: [], reason_code: reason,
+    }]) }));
+    await page.goto("/runs/run-1");
+    await expect(page.getByText(reason === "knowledge_unavailable" ? "Required knowledge is unavailable" : "Knowledge reference is invalid or revoked", { exact: false })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Knowledge integration status" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("Snapshot stored-blocked-hash", { exact: true })).toBeVisible();
+  });
+}
+
+test("knowledge pages can be selected directly and a failed page preserves loaded evidence", async ({ page }) => {
+  const offsets: number[] = [];
+  let failPage = true;
+  await page.route("**/runs/run-1/knowledge?*", (route) => {
+    const offset = Number(new URL(route.request().url()).searchParams.get("offset"));
+    offsets.push(offset);
+    if (offset === 60 && failPage) {
+      failPage = false;
+      return route.fulfill({ status: 503, json: { detail: "Synthetic page outage" } });
+    }
+    return route.fulfill({ json: {
+      items: Array.from({ length: offset === 60 ? 1 : 20 }, (_, index) => ({
+        id: `k${offset + index}`, run_id: "run-1", status: "ready", source_mode: "knowledge_module",
+        required: true, retrieved_at: time, snapshot_hash: `page-hash-${offset + index}`, sources: [],
+      })), total: 61, limit: 20, offset,
+    } });
+  });
+  await page.goto("/runs/run-1");
+  await expect(page.getByText("Snapshot page-hash-0", { exact: true })).toBeVisible();
+  await page.getByLabel("Snapshot page").fill("4");
+  await page.getByRole("button", { name: "Load snapshot page", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry snapshot page", exact: true })).toBeVisible();
+  await expect(page.getByText("Snapshot page-hash-0", { exact: true })).toBeVisible();
+  await expect(page.getByText("has no matching source", { exact: false })).toHaveCount(0);
+  await page.getByRole("button", { name: "Retry snapshot page", exact: true }).click();
+  await expect(page.getByText("Snapshot page-hash-60", { exact: true })).toBeVisible();
+  expect([...new Set(offsets)]).toEqual([0, 60]);
+  expect(offsets.filter((offset) => offset === 60)).toHaveLength(2);
+});
+
+test("knowledge module accepts nullable metadata and bounds critical-context previews", async ({ page }) => {
+  await page.route("**/runs/run-1/knowledge?*", (route) => route.fulfill({
+    json: list([{
+      id: "bounded-context", run_id: "run-1", status: "ready", source_mode: "knowledge_module",
+      required: true, retrieved_at: time, snapshot_hash: "bounded-hash", verification_profile: null,
+      sources: [{ document_id: "doc", document_version: "1", snippet_id: "chunk", citation_id: "C1",
+        title: "Nullable metadata source", excerpt: "Approved excerpt", content_hash: "hash",
+        approved_at: time, effective_from: null, effective_until: null, source_uri: null,
+        document_hash: null, snippet_hash: null }],
+      critical_context: Array.from({ length: 21 }, (_, index) => ({
+        document_id: "doc", document_version: "1", chunk_id: `context-${index}`,
+        locator: `section ${index}`, text: `${"x".repeat(8000)}OMITTED_CONTEXT_SUFFIX`, content_hash: `hash-${index}`,
+      })),
+    }]),
+  }));
+  await page.goto("/runs/run-1");
+  await expect(page.getByRole("heading", { name: "Nullable metadata source" })).toBeVisible();
+  const context = page.getByRole("region", { name: "Critical context" });
+  await expect(context.locator("details")).toHaveCount(20);
+  await expect(context.getByText("Showing the first 20 critical context entries.")).toBeVisible();
+  await expect(page.getByText("OMITTED_CONTEXT_SUFFIX", { exact: false })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Retrieval profile" })).toHaveCount(0);
 });

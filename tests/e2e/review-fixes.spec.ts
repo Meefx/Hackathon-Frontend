@@ -158,6 +158,9 @@ test("artifact citation resolves sources on a later knowledge history page", asy
     });
   });
   await page.goto("/runs/run-1");
+  await expect(page.getByText("Citation C1 is awaiting unloaded snapshot pages", { exact: false })).toBeVisible();
+  expect([...new Set(offsets)]).toEqual([0]);
+  await page.getByRole("button", { name: "Load next snapshots", exact: true }).click();
   await expect(page.getByText("Cited source on page two")).toBeVisible();
   expect(offsets).toContain(20);
   await expect(
