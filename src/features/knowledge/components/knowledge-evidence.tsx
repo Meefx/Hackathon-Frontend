@@ -28,12 +28,14 @@ export function citationAnchor(run: string, citation: string) {
 
 export function KnowledgeEvidence({
   runId,
+  runVersion,
   citationIds = [],
 }: {
   runId: string;
+  runVersion: number;
   citationIds?: string[];
 }) {
-  const state = useKnowledgePages(runId);
+  const state = useKnowledgePages(runId, runVersion);
   const [pageNumber, setPageNumber] = useState("1");
   const seen = new Set<string>();
   const snapshots = state.snapshots;

@@ -253,8 +253,9 @@ export function RunDetail({ runId }: { runId: string }) {
             </ul>
           </section>
           <KnowledgeEvidence
-            key={`${runId}-${run.version}`}
+            key={runId}
             runId={runId}
+            runVersion={run.version}
             citationIds={Array.from(
               new Set(run.artifacts.flatMap((item) => item.citation_ids)),
             )}

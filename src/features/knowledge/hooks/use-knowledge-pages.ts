@@ -5,7 +5,7 @@ import { errorMessage, type Page } from "@/lib/http";
 import { getKnowledge } from "@/features/knowledge/api";
 import type { KnowledgeSnapshot } from "@/features/knowledge/types";
 
-export function useKnowledgePages(runId: string) {
+export function useKnowledgePages(runId: string, runVersion: number) {
   const [pages, setPages] = useState<Record<number, Page<KnowledgeSnapshot>>>({});
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -13,6 +13,7 @@ export function useKnowledgePages(runId: string) {
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
 
+  // Revalidate one page per version update while retaining immutable cached pages.
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -34,7 +35,7 @@ export function useKnowledgePages(runId: string) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [runId, offset, revision]);
+  }, [runId, runVersion, offset, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -60,7 +61,11 @@ export function useKnowledgePages(runId: string) {
   const orderedOffsets = Object.keys(pages).map(Number).sort((a, b) => a - b);
   const snapshots = orderedOffsets.flatMap((key) => pages[key].items);
   let nextOffset = 0;
-  while (pages[nextOffset] && nextOffset < total) nextOffset += 20;
+  while (
+    nextOffset < total &&
+    pages[nextOffset] &&
+    pages[nextOffset].items.length >= Math.min(20, total - nextOffset)
+  ) nextOffset += 20;
 
   return {
     snapshots,

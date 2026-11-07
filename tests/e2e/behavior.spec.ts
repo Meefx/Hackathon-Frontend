@@ -472,3 +472,75 @@ test("knowledge module accepts nullable metadata and bounds critical-context pre
   await expect(page.getByText("OMITTED_CONTEXT_SUFFIX", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Retrieval profile" })).toHaveCount(0);
 });
+
+test("same-run version updates preserve loaded citation pages and refresh snapshot availability", async ({ page }) => {
+  let advanced = false;
+  const offsets: number[] = [];
+  await page.route("**/api/v1/runs/run-1", (route) => route.fulfill({
+    json: {
+      ...run,
+      version: advanced ? 4 : 3,
+      phase: advanced ? "new_snapshot_available" : "completed",
+      artifacts: run.artifacts.map((artifact) => ({ ...artifact, citation_ids: advanced ? ["C1", "C2"] : ["C1"] })),
+    },
+  }));
+  await page.route("**/runs/run-1/knowledge?*", (route) => {
+    const offset = Number(new URL(route.request().url()).searchParams.get("offset"));
+    offsets.push(offset);
+    const total = advanced ? 62 : 61;
+    return route.fulfill({ json: {
+      items: Array.from({ length: Math.min(20, total - offset) }, (_, index) => ({
+        id: `retained-${offset + index}`,
+        run_id: "run-1",
+        status: "ready",
+        source_mode: "knowledge_module",
+        required: true,
+        retrieved_at: time,
+        snapshot_hash: `retained-hash-${offset + index}`,
+        sources: offset + index === 20 ? [{
+          document_id: "retained-doc", document_version: "1", snippet_id: "retained-chunk",
+          citation_id: "C1", title: "Retained page-two citation", excerpt: "Approved immutable evidence",
+          content_hash: "retained-source-hash", approved_at: time,
+          effective_from: null, effective_until: null, source_uri: null,
+        }] : offset + index === 61 ? [{
+          document_id: "appended-doc", document_version: "1", snippet_id: "appended-chunk",
+          citation_id: "C2", title: "Newly appended citation", excerpt: "New immutable evidence",
+          content_hash: "appended-source-hash", approved_at: time,
+          effective_from: null, effective_until: null, source_uri: null,
+        }] : [],
+      })),
+      total,
+      limit: 20,
+      offset,
+    } });
+  });
+  await page.goto("/runs/run-1");
+  await page.getByLabel("Snapshot page").fill("4");
+  await page.getByRole("button", { name: "Load snapshot page", exact: true }).click();
+  await expect(page.getByText("Snapshot retained-hash-60", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Load next snapshots", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Retained page-two citation" })).toBeVisible();
+  const firstPageRequests = offsets.filter((offset) => offset === 0).length;
+  const secondPageRequests = offsets.filter((offset) => offset === 20).length;
+  advanced = true;
+  await page.getByRole("button", { name: "Refresh run", exact: true }).click();
+  await expect(page.getByText("new_snapshot_available", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Retained page-two citation" })).toBeVisible();
+  await expect(page.getByText("Snapshot retained-hash-0", { exact: true })).toBeVisible();
+  await expect(page.getByText("Snapshot retained-hash-39", { exact: true })).toBeVisible();
+  await expect(page.getByText("Loaded 41 of 62 snapshots.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Citation C1 is awaiting", { exact: false })).toHaveCount(0);
+  await page.getByRole("link", { name: "C1", exact: true }).click();
+  await expect(page.locator("#evidence-run-1-C1")).toBeInViewport();
+  expect(offsets.filter((offset) => offset === 0)).toHaveLength(firstPageRequests);
+  expect(offsets.filter((offset) => offset === 20)).toHaveLength(secondPageRequests + 1);
+  expect([...new Set(offsets)]).toEqual([0, 60, 20]);
+  await page.getByRole("button", { name: "Load next snapshots", exact: true }).click();
+  await expect(page.getByText("Snapshot retained-hash-59", { exact: true })).toBeVisible();
+  await expect(page.getByText("Citation C2 is awaiting unloaded snapshot pages", { exact: false })).toBeVisible();
+  await expect(page.getByText("has no matching source", { exact: false })).toHaveCount(0);
+  await page.getByRole("button", { name: "Load next snapshots", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Newly appended citation" })).toBeVisible();
+  await expect(page.getByText("Citation C2 is awaiting", { exact: false })).toHaveCount(0);
+  expect([...new Set(offsets)]).toEqual([0, 60, 20, 40]);
+});
