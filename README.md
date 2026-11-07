@@ -7,7 +7,7 @@ Next.js frontend for a lending collections portal. Built with the App Router, Re
 Requires Node.js 22+ (Node 24 recommended) and npm.
 
 ```sh
-git clone git@github.com:Meefx/Hackathon-Frontend.git
+git clone https://github.com/Meefx/Hackathon-Frontend.git
 cd Hackathon-Frontend
 cp .env.example .env.local
 npm install
