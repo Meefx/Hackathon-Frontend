@@ -1,4 +1,5 @@
 "use client";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { DataState } from "@/components/ui/data-state";
@@ -8,9 +9,11 @@ import { getReviews } from "../api";
 import { ReviewDetail } from "./review-detail";
 import styles from "@/components/ui/panels.module.css";
 export function ReviewQueue() {
+  const params = useSearchParams();
+  const router = useRouter();
   const [offset, setOffset] = useState(0);
   const [status, setStatus] = useState("open");
-  const [selected, setSelected] = useState<string | null>(null);
+  const selected = params.get("review");
   const state = useRemote(
     useCallback(
       (signal: AbortSignal) => getReviews(offset, status, signal),
@@ -63,7 +66,7 @@ export function ReviewQueue() {
                     <button
                       className="button"
                       aria-pressed={selected === review.id}
-                      onClick={() => setSelected(review.id)}
+                      onClick={() => router.replace(`/review?review=${encodeURIComponent(review.id)}`)}
                     >
                       Open review
                     </button>

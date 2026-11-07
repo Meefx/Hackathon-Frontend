@@ -24,7 +24,7 @@ test("knowledge_module real worker preserves evidence and blocks dispatch after 
   expect(accountId, "KNOWLEDGE_ACCOUNT_ID must identify a contact-eligible synthetic account").toBeTruthy();
   expect(token, "TRUST_API_TOKEN must authorize synthetic document retirement").toBeTruthy();
 
-  await page.goto(`/manager?account=${encodeURIComponent(accountId!)}`);
+  await page.goto(`/manager/tasks?account=${encodeURIComponent(accountId!)}`);
   await page.getByLabel("Instruction").fill(
     "Siapkan pengingat yang sopan berdasarkan konteks yang disetujui.",
   );

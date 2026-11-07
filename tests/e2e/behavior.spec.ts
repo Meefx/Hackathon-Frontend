@@ -312,7 +312,7 @@ for (const task of ["collector_brief", "improvement_review"] as const) {
         },
       });
     });
-    await page.goto("/manager");
+    await page.goto("/manager/tasks");
     await page.getByLabel("Select account").selectOption("A001");
     await page.getByRole("button", { name: "Follow up", exact: true }).click();
     await page.getByLabel("Task type").selectOption(task);

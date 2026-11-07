@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Account, AccountPage, CollectionStatus } from "@/features/accounts/types";
 import type { Dashboard } from "@/features/dashboard/types";
 import { getAccounts } from "@/features/accounts/api";
+import { AutomationSummary } from "@/features/automation/components/automation-summary";
 import { getDashboard } from "@/features/dashboard/api";
 import { statusLabels } from "@/features/accounts/constants";
 import { currency, formatDate } from "@/lib/format";
@@ -80,6 +81,7 @@ export function CollectionWorkspace({ view }: { view: "overview" | "accounts" })
         <div className="page-heading"><div><div className="eyebrow">YOUR PORTFOLIO, IN FOCUS</div><h1>{view === "overview" ? "Collections overview" : "Collection accounts"}</h1><p>{view === "overview" ? "Keep track of balances. Know where to focus next." : "Find an account and review its collection status."}</p></div><button className="button" onClick={() => setRevision(value => value + 1)}><Icon kind="refresh" size={16} />Refresh</button></div>
 
         {view === "overview" && <>
+          <AutomationSummary revision={revision} />
           <div className="section-label"><span>Portfolio snapshot</span><span>{dateLabel} · IDR</span></div>
           {summaryError ? <div className="notice" role="alert">Portfolio summary is unavailable. Use Refresh to try again.</div> : <section className="stats" aria-label="Portfolio summary">
             {[
@@ -106,7 +108,7 @@ export function CollectionWorkspace({ view }: { view: "overview" | "accounts" })
           </div>
           {page && !loading && !error && page.total > 0 && <div className="pagination"><span>Showing {offset + 1}–{Math.min(offset + page.limit, page.total)} of {page.total} accounts</span><div><button className="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - page.limit))}>Previous</button><button className="button" disabled={offset + page.limit >= page.total} onClick={() => setOffset(offset + page.limit)}>Next</button></div></div>}
         </section>
-        <footer className="footer"><span>CollectFlow</span><span>Clarity for every collection.</span></footer>
+        <footer className="footer"><span>Graceline</span><span>Clarity for every collection.</span></footer>
 
     <dialog ref={dialog} onClose={() => setSelected(null)} onClick={event => { if (event.target === dialog.current) setSelected(null); }} aria-labelledby="detail-title">
       {selected && <div className="dialog-content"><div className="dialog-heading"><span className="eyebrow">ACCOUNT DETAILS</span><button className="close-button" onClick={() => setSelected(null)} aria-label="Close account details">×</button></div><h2 id="detail-title">{selected.borrower_name}</h2><p>{selected.loan_reference} · {selected.id}</p><div className="detail-balance"><span>Outstanding balance</span><strong>{currency(selected.outstanding_amount)}</strong></div><dl><div><dt>Status</dt><dd><span className={`status-pill ${selected.status}`}>{statusLabels[selected.status]}</span></dd></div><div><dt>Days past due</dt><dd>{selected.days_past_due}</dd></div><div><dt>Due date</dt><dd>{formatDate(selected.due_date)}</dd></div><div><dt>Assigned to</dt><dd>{selected.assigned_to}</dd></div></dl><div className="pagination"><Link className="button primary" href={`/accounts/${selected.id}`}>Open workspace</Link><button className="button" onClick={() => setSelected(null)}>Done</button></div></div>}

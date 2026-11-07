@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CollectFlow | Collections workspace",
+  title: "Graceline | Collections workspace",
   description: "A focused workspace for managing lending collections and overdue accounts.",
   icons: { icon: "/icon.svg" },
 };

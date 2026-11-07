@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getSessions, getTurns } from "../api";
 import { useRemote } from "@/hooks/use-remote";
@@ -73,6 +73,11 @@ export function SessionHistory({
       [account, offset],
     ),
   );
+  useEffect(() => {
+    if (state.data?.items.some(session => session.id === selected && session.origin === "scheduled")) {
+      onSelect(null);
+    }
+  }, [state.data, selected, onSelect]);
   return (
     <section className={styles.panel}>
       <h2>Manager sessions</h2>
@@ -89,13 +94,18 @@ export function SessionHistory({
             <li className={styles.item} key={session.id}>
               <button
                 className="button"
+                disabled={session.origin === "scheduled"}
                 aria-pressed={selected === session.id}
                 onClick={() => onSelect(session.id)}
               >
                 {session.title}
               </button>
               <p className={styles.muted}>{timestamp(session.updated_at)}</p>
-              {selected === session.id && <Turns id={session.id} />}
+              {session.origin === "scheduled" ? <details>
+                <summary>Inspect scheduled session history</summary>
+                <Turns id={session.id} />
+                <p>Choose New session to discuss this account as an operator.</p>
+              </details> : selected === session.id && <Turns id={session.id} />}
             </li>
           ))}
         </ul>

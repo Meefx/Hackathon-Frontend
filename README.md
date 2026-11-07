@@ -1,4 +1,4 @@
-# CollectFlow
+# Graceline
 
 Next.js 16, React 19 and strict TypeScript portal for a synthetic lending collections demo. English interface, integer Indonesian rupiah and event times in Asia/Jakarta.
 
@@ -23,7 +23,8 @@ For Hermes, configure the remote runtime/bridge and MCP endpoint in the backend 
 - `/`: whole-portfolio totals and aging filters.
 - `/accounts`: search, filtering, pagination and accessible detail dialog.
 - `/accounts/{id}`: facts, contact policy, conversations, simulated inbound/dispatch, takeover/resume, run history and read-only audit.
-- `/manager`: portfolio-wide account search, manager sessions and three task types: follow up, collector brief and improvement review.
+- `/manager` provides whole-portfolio manager chat, saved conversations, optional account context, run evidence and advisory task suggestions.
+- `/manager/tasks` retains advanced account tasks and account session history for follow up, collector brief and improvement review.
 - `/runs/{id}`: persisted status, ordered specialist evidence, artifacts, immutable knowledge snapshots, events, cancellation and permitted recovery.
 - `/agents`: six role profiles with configured and available status.
 - `/review`: human escalation queue, resolution and separate case resume outcome.
@@ -31,9 +32,13 @@ For Hermes, configure the remote runtime/bridge and MCP endpoint in the backend 
 
 Only `simulated_chat` dispatches synthetic messages. WhatsApp, email and phone are explicit unavailable provider skeletons. Policy, recipient, knowledge references, approval and dispatch gates are owned by the backend.
 
+The Gmail API sandbox appears separately in Integrations with configuration and connection health. Configure OAuth credentials and a fixed team test recipient in the backend, then run `uv run python -m app.integrations.gmail authorize` and `uv run python -m app.integrations.gmail send-test --request-id 00000000-0000-4000-8000-000000000001` from its terminal. Reuse the request ID for an exact retry. Choose a fresh UUID for each intentional new test. The test sends fixed synthetic content to the configured team mailbox. A successful send confirms Gmail API acceptance. Verify recipient delivery in the test mailbox. Provider credentials stay in the backend environment.
+
 ## Recovery
 
-The manager stores only account/session/run IDs and an idempotency request key in browser storage. It does not store instructions, messages or credentials. After a lost submission response or refresh, the saved key finds the accepted run through a read request. In-memory retries preserve the exact write payload/key. Opening a confirmed run acknowledges the submission journal; run URLs and server session history remain available.
+The manager stores only account/session/run IDs, an idempotency request key, runtime mode and selected account context in browser storage. Instructions and messages remain in server history and page memory. After a lost submission response or refresh, the saved key finds the accepted run through a read request. In-memory retries preserve the exact write payload/key. Opening a confirmed account task acknowledges its submission journal. Portfolio chat restores its saved conversation and latest run in place. An unconfirmed chat request is recovered through `GET /api/v1/manager/chat/requests/{key}`. A missing acceptance requires an explicit fresh-request choice. Run URLs and server session history remain available.
+
+Chat sends free-text instructions to the backend Manager Agent. Simulated mode labels synthetic responses and evidence explicitly. Hermes uses the configured backend runtime and MCP tools. Proposed account tasks require an operator click. Acceptance first reads for an existing task using the proposal artifact ID as its stable idempotency key, then submits the exact proposal payload. Follow-up tasks prepare drafts for the existing review and manual dispatch flow.
 
 Run polling has no overlapping requests, aborts on navigation, backs off during connection errors and preserves monotonically increasing versions/event sequences. “Status update delayed” preserves the last confirmed outcome. Cancellation is a request until worker confirmation. Reconcile/retry controls follow backend `allowed_actions`. Review resolution can leave the case paused; resume never sends a message.
 

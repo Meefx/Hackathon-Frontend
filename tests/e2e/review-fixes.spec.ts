@@ -39,7 +39,7 @@ test("retrying an account read inside the manager form never starts a task", asy
       },
     });
   });
-  await page.goto("/manager?account=A001");
+  await page.goto("/manager/tasks?account=A001");
   await expect(page.getByText("Account list unavailable")).toBeVisible();
   await page
     .getByLabel("Instruction")
@@ -61,7 +61,7 @@ test("retrying an account read inside the manager form never starts a task", asy
   expect(await submitted).toBe(false);
   expect(writes).toBe(0);
   expect(reads).toBeGreaterThanOrEqual(2);
-  await expect(page).toHaveURL(/\/manager\?/);
+  await expect(page).toHaveURL(/\/manager\/tasks\?/);
 });
 
 test("keep paused replay reports a pause action and never claims resume", async ({

@@ -9,7 +9,7 @@ import { reasonLabel } from "@/features/compliance/reasons";
 import { timestamp } from "@/lib/format";
 import { ApiError, errorMessage } from "@/lib/http";
 import styles from "@/components/ui/panels.module.css";
-import { acknowledgeRun } from "@/features/manager";
+import { acknowledgeRun, TaskProposalCard } from "@/features/manager";
 export function RunDetail({ runId }: { runId: string }) {
   const state = useRunPolling(runId);
   const [busy, setBusy] = useState(false);
@@ -56,8 +56,14 @@ export function RunDetail({ runId }: { runId: string }) {
     }
   }
   const run = state.run;
+  let managerUrl = run ? `/manager?session=${encodeURIComponent(run.manager_session_id)}` : "/manager";
+  if (run?.account_id) {
+    managerUrl = run.origin === "scheduled"
+      ? `/manager?account=${encodeURIComponent(run.account_id)}`
+      : `/manager/tasks?account=${encodeURIComponent(run.account_id)}&session=${encodeURIComponent(run.manager_session_id)}`;
+  }
   useEffect(() => {
-    if (run) acknowledgeRun(run.id, run.account_id);
+    if (run?.account_id) acknowledgeRun(run.id, run.account_id);
   }, [run]);
   return (
     <AppShell title="Run detail">
@@ -130,15 +136,15 @@ export function RunDetail({ runId }: { runId: string }) {
               </p>
             ))}
             <div className={styles.row}>
-              <Link
+              {run.account_id && <Link
                 className={styles.link}
                 href={`/accounts/${encodeURIComponent(run.account_id)}`}
               >
                 Open account
-              </Link>
+              </Link>}
               <Link
                 className={styles.link}
-                href={`/manager?account=${encodeURIComponent(run.account_id)}&session=${encodeURIComponent(run.manager_session_id)}`}
+                href={managerUrl}
               >
                 Continue with manager
               </Link>
@@ -228,7 +234,9 @@ export function RunDetail({ runId }: { runId: string }) {
                       the knowledge workflow.
                     </p>
                   )}
-                  <p className={styles.text}>{artifact.text}</p>
+                  {artifact.kind === "manager_task_proposal"
+                    ? <TaskProposalCard artifact={artifact} run={run} />
+                    : <p className={styles.text}>{artifact.text}</p>}
                   <div className={styles.row}>
                     {artifact.citation_ids.map((id) => (
                       <a
@@ -239,7 +247,7 @@ export function RunDetail({ runId }: { runId: string }) {
                         {id}
                       </a>
                     ))}
-                    {artifact.message_id && (
+                    {artifact.message_id && run.account_id && (
                       <Link
                         className={styles.link}
                         href={`/accounts/${encodeURIComponent(run.account_id)}#message-${encodeURIComponent(artifact.message_id)}`}

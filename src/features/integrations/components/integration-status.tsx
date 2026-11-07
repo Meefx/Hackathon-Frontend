@@ -28,7 +28,7 @@ export function IntegrationStatusPanel() {
         <div className={styles.grid}>
           {state.data?.items.map((item) => (
             <article className={styles.panel} key={item.id}>
-              <h2>{item.id}</h2>
+              <h2>{item.id === "gmail" ? "Gmail API sandbox" : item.id}</h2>
               <div className={styles.row}>
                 <span className={styles.badge}>{item.kind}</span>
                 <span className={styles.badge}>{item.health}</span>
@@ -41,7 +41,42 @@ export function IntegrationStatusPanel() {
                 · {item.configured ? "Configured" : "Not configured"}
               </p>
               {item.disabled_reason && (
-                <p className={styles.notice}>{item.disabled_reason}</p>
+                <p className={styles.notice}>
+                  {item.disabled_reason === "gmail_not_configured"
+                    ? "Configure OAuth credentials and a fixed team test recipient in the backend."
+                    : item.disabled_reason}
+                </p>
+              )}
+              {item.id === "gmail" && (
+                <div>
+                  <p>
+                    Test emails use fixed synthetic content and the configured
+                    team test mailbox.
+                  </p>
+                  {item.configured && (
+                    <p>Connection health awaits a backend test.</p>
+                  )}
+                  <p>Run these commands from the backend terminal.</p>
+                  <p className={styles.code}>
+                    <code>
+                      uv run python -m app.integrations.gmail authorize
+                    </code>
+                  </p>
+                  <p className={styles.code}>
+                    <code>
+                      uv run python -m app.integrations.gmail send-test
+                      --request-id 00000000-0000-4000-8000-000000000001
+                    </code>
+                  </p>
+                  <p>
+                    Reuse the request ID for an exact retry. Choose a fresh UUID
+                    for each intentional new test.
+                  </p>
+                  <p>
+                    A successful send-test confirms Gmail API acceptance.
+                    Recipient delivery must be checked in the test mailbox.
+                  </p>
+                </div>
               )}
               <p>
                 Capabilities: {item.capabilities.join(", ") || "None reported"}

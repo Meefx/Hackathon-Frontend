@@ -21,7 +21,7 @@ test("real PostgreSQL worker journey: task evidence, reload, dispatch, escalatio
     chosen,
     "At least one synthetic account must be contact eligible",
   ).not.toBe("");
-  await page.goto(`/manager?account=${chosen}`);
+  await page.goto(`/manager/tasks?account=${chosen}`);
   await page
     .getByLabel("Instruction")
     .fill("Siapkan pengingat yang sopan berdasarkan konteks yang disetujui.");
@@ -77,7 +77,7 @@ test("real PostgreSQL worker journey: task evidence, reload, dispatch, escalatio
   await expect(page.getByText("resume applied", { exact: false })).toHaveCount(
     0,
   );
-  await page.goto(`/manager?account=${chosen}`);
+  await page.goto(`/manager/tasks?account=${chosen}`);
   await page
     .getByLabel("Instruction")
     .fill("Periksa apakah akun yang sedang ditahan boleh dihubungi.");
@@ -92,7 +92,7 @@ test("real PostgreSQL worker journey: task evidence, reload, dispatch, escalatio
 });
 for (const task of ["collector_brief", "improvement_review"] as const) {
   test(`real worker ${task} creates persisted artifact`, async ({ page }) => {
-    await page.goto("/manager?account=CF-1006");
+    await page.goto("/manager/tasks?account=CF-1006");
     await page.getByLabel("Task type").selectOption(task);
     await page
       .getByLabel("Instruction")

@@ -4,7 +4,7 @@ export interface IntegrationStatus {
   implemented: boolean;
   configured: boolean;
   health: "healthy" | "unavailable" | "unknown";
-  execution_mode: "simulated" | "hermes" | "in_process" | "unavailable";
+  execution_mode: "simulated" | "hermes" | "in_process" | "sandbox" | "unavailable";
   capabilities: string[];
   disabled_reason: string | null;
   checked_at: string | null;

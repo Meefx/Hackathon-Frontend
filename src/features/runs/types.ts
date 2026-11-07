@@ -13,6 +13,7 @@ export interface StartRunRequest {
   runtime_mode: "simulated" | "hermes";
   idempotency_key: string;
   manager_session_id: string | null;
+  review_id?: string;
   demo_scenario?: "reminder" | "hardship" | "dispute" | "human_request";
 }
 export interface RunAccepted {
@@ -35,7 +36,12 @@ export interface RunStep {
 export interface RunArtifact {
   id: string;
   run_id: string;
-  kind: "draft" | "qa_report" | "collector_brief" | "improvement_proposal";
+  kind: "draft" | "qa_report" | "collector_brief" | "improvement_proposal" | "manager_response" | "manager_task_proposal";
+  proposal?: {
+    account_id: string;
+    task_type: TaskType;
+    instruction: string;
+  } | null;
   text: string;
   message_id: string | null;
   citation_ids: string[];
@@ -43,8 +49,11 @@ export interface RunArtifact {
   created_at: string;
 }
 export interface RunSnapshot {
+  origin?: "operator" | "scheduled";
   id: string;
-  account_id: string;
+  account_id: string | null;
+  context_account_id?: string | null;
+  scope?: "portfolio" | "account";
   manager_session_id: string;
   status: RunStatus;
   outcome: string | null;

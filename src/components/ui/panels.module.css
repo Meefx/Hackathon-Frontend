@@ -117,7 +117,7 @@
   color: #a13c30;
 }
 .link {
-  color: var(--green);
+  color: var(--brand-strong);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

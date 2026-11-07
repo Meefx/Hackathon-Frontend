@@ -26,7 +26,7 @@ export function AppShell({
       </a>
       <aside className={`sidebar ${styles.sidebar}`}>
         <Link href="/" className="brand">
-          <span className="brand-mark">cf</span>CollectFlow
+          <span className="brand-mark">gl</span>Graceline
           <span className="brand-dot">.</span>
         </Link>
         <div className="workspace-label">COLLECTIONS WORKSPACE</div>

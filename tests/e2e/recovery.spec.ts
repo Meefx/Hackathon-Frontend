@@ -13,7 +13,7 @@ test("lost accepted response is recovered by request key after refresh without r
       await route.abort();
     } else await route.fulfill({ json: list([run]) });
   });
-  await page.goto("/manager");
+  await page.goto("/manager/tasks");
   await page.getByLabel("Select account").selectOption("A001");
   await page.getByLabel("Instruction").fill("Prepare a follow up");
   await page.getByRole("button", { name: "Start task", exact: true }).click();
@@ -131,13 +131,13 @@ test("takeover outcome remains visible after policy refresh", async ({
 test("confirmed run lets operator return to manager for a new session turn", async ({
   page,
 }) => {
-  await page.goto("/manager");
+  await page.goto("/manager/tasks");
   await page.getByLabel("Select account").selectOption("A001");
   await page.getByLabel("Instruction").fill("First task");
   await page.getByRole("button", { name: "Start task", exact: true }).click();
   await expect(page.getByText("draft_created")).toBeVisible();
   await page.getByRole("link", { name: "Continue with manager" }).click();
-  await expect(page).toHaveURL(/\/manager\?/);
+  await expect(page).toHaveURL(/\/manager\/tasks\?/);
   await expect(page.getByLabel("Instruction")).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "Follow up", exact: true }),
@@ -171,7 +171,7 @@ test("late recovery read cannot navigate away after operator changes page", asyn
     await gate;
     await route.fulfill({ json: list([run]) });
   });
-  await page.goto("/manager");
+  await page.goto("/manager/tasks");
   await started;
   await page.getByRole("link", { name: "Agents", exact: true }).click();
   await expect(

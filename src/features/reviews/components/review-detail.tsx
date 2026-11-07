@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { ReviewDiscussion } from "@/features/manager";
 import { getReview, resolveReview } from "../api";
 import type { ReviewResolution, ReviewResolutionResult } from "../types";
 import { getPolicy } from "@/features/compliance/api";
@@ -177,6 +178,7 @@ export function ReviewDetail({
           </p>
         )}
       </section>
+      {account && <ReviewDiscussion key={id} reviewId={id} accountId={account} />}
       {caseResult && (
         <p role="status" className={styles.notice}>
           Action {caseResult.action_applied ? "applied" : "not applied"}. Case

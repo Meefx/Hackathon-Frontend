@@ -47,7 +47,7 @@ test("integration skeleton exposes unavailable providers", async ({ page }) => {
 test("manager submits a persisted task and renders snapshot evidence after reload", async ({
   page,
 }) => {
-  await page.goto("/manager");
+  await page.goto("/manager/tasks");
   await page.getByLabel("Select account").selectOption("A001");
   await page.getByLabel("Instruction").fill("Prepare a respectful follow up");
   await page.getByRole("button", { name: "Start task", exact: true }).click();
