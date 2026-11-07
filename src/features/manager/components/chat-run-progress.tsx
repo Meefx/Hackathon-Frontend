@@ -2,18 +2,18 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRunPolling } from "@/features/runs";
+import { AgentActivityMap, useRunPolling } from "@/features/runs";
 import { TaskProposalCard } from "./task-proposal-card";
 import styles from "./manager-chat.module.css";
 
 
-export function ChatRunProgress({ id, onFinished }: { id: string; onFinished: () => void }) {
+export function ChatRunProgress({ id, onFinished }: { id: string; onFinished?: () => void }) {
   const state = useRunPolling(id);
   const notified = useRef(false);
   const run = state.run;
   const terminal = !!run && !["queued", "running"].includes(run.status);
   useEffect(() => {
-    if (terminal && !notified.current) {
+    if (terminal && onFinished && !notified.current) {
       notified.current = true;
       onFinished();
     }
@@ -23,6 +23,7 @@ export function ChatRunProgress({ id, onFinished }: { id: string; onFinished: ()
       <p role="status"><strong>{run.status}</strong> · {run.phase} · {run.actual_runtime_mode || `${run.requested_runtime_mode} requested`}</p>
       {run.actual_runtime_mode === "simulated" && <p className={styles.muted}>Simulated manager response and tool evidence</p>}
       {run.reason_codes.length > 0 && <p>{run.reason_codes.join(" · ")}</p>}
+      <AgentActivityMap key={run.id} run={run} activity={state.activity} onRefresh={state.refresh} />
       <details>
         <summary>Inspect run evidence</summary>
         <ol>{run.steps.map(step => <li key={step.id}><strong>{step.role} · {step.status}</strong><p>{step.summary}</p><small>{step.evidence_origin}</small></li>)}</ol>

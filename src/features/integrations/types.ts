@@ -21,7 +21,7 @@ export interface GmailCollectionDemo {
   provider_message_id: string | null;
   created_at: string;
   updated_at: string;
-  runtime_mode: "simulated";
+  runtime_mode: "simulated" | "hermes";
 }
 
 export interface GmailCollectionDemoStatus {

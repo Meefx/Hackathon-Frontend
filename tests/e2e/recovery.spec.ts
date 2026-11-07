@@ -173,6 +173,7 @@ test("late recovery read cannot navigate away after operator changes page", asyn
   });
   await page.goto("/manager/tasks");
   await started;
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
   await page.getByRole("link", { name: "Agents", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Agent registry" }),

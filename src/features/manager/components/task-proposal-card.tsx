@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getRuns, startRun } from "@/features/runs/api";
 import type { RunArtifact, RunSnapshot, StartRunRequest } from "@/features/runs/types";
 import { errorMessage } from "@/lib/http";
+import { PreparedTask } from "./prepared-task";
 import styles from "./manager-chat.module.css";
 
 export function TaskProposalCard({ artifact, run }: { artifact: RunArtifact; run: RunSnapshot }) {
@@ -20,7 +21,7 @@ export function TaskProposalCard({ artifact, run }: { artifact: RunArtifact; run
     const controller = new AbortController();
     if (proposal) void getRuns(proposal.account_id, 0, controller.signal, artifact.id)
       .then(result => {
-        if (!controller.signal.aborted) setChildId(result.items[0]?.id || null);
+        if (!controller.signal.aborted) setChildId(current => current || result.items[0]?.id || null);
       }).catch(() => { /* The explicit action retries this read before any write. */ });
     return () => { mounted.current = false; controller.abort(); };
   }, [artifact.id, proposal]);
@@ -51,9 +52,9 @@ export function TaskProposalCard({ artifact, run }: { artifact: RunArtifact; run
     <strong>{label}</strong>
     <p>{artifact.text}</p>
     <p>{proposal.instruction}</p>
-    <p>Account <Link href={`/accounts/${encodeURIComponent(proposal.account_id)}`}>{proposal.account_id}</Link> · {mode} runtime</p>
-    <p>Suggested action awaiting your choice. Review the resulting draft and use the account dispatch controls to send it.</p>
-    {childId ? <Link href={`/runs/${encodeURIComponent(childId)}`}>Open prepared task</Link>
+    <p className={styles.muted}>Account <Link href={`/accounts/${encodeURIComponent(proposal.account_id)}`}>{proposal.account_id}</Link></p>
+    {!childId && <p className={styles.muted}>Confirm this task to let the manager prepare the result here.</p>}
+    {childId ? <PreparedTask key={childId} id={childId} />
       : <button className="button" disabled={busy || (mode !== "simulated" && mode !== "hermes")} onClick={() => void accept()}>{busy ? "Checking task request…" : label}</button>}
     {error && <p role="alert">{error}</p>}
   </section>;

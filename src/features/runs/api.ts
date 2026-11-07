@@ -5,6 +5,7 @@ import type {
   RunAccepted,
   EventPage,
   VersionAction,
+  RuntimeActivityPage,
 } from "./types";
 export const startRun = (account: string, body: StartRunRequest) =>
   post<RunAccepted>(
@@ -34,3 +35,9 @@ export const recoverRun = (
   id: string,
   body: VersionAction & { action: "reconcile" | "retry_safe_step" },
 ) => post<RunSnapshot>(`/api/v1/runs/${encodeURIComponent(id)}/recover`, body);
+
+export const getRunActivity = (id: string, after = -1, signal?: AbortSignal) =>
+  get<RuntimeActivityPage>(
+    `/api/v1/runs/${encodeURIComponent(id)}/activity?after_sequence=${after}&limit=100`,
+    signal,
+  );

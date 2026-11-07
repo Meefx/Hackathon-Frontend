@@ -1,0 +1,29 @@
+.review {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--brand-border);
+  border-radius: 12px;
+  background: var(--white);
+  padding: 18px;
+}
+
+.review h3 {
+  font-size: 14px;
+}
+
+.review .text {
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.review > button {
+  justify-self: start;
+  white-space: normal;
+}

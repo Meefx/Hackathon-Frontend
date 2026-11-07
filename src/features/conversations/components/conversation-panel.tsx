@@ -122,7 +122,7 @@ export function ConversationPanel({
     }
   }
   return (
-    <section className={styles.panel}>
+    <section id="conversation" className={styles.panel}>
       <h2>Conversation</h2>
       <p>
         Dispatch decisions are enforced by the backend. Channel availability is shown in{" "}
@@ -180,7 +180,10 @@ export function ConversationPanel({
                     {id}
                   </span>
                 ))}
-                {message.status === "draft" && (
+                {message.status === "draft" && message.channel === "email" && (
+                  <p className={styles.muted}>Email demo delivery is managed automatically.</p>
+                )}
+                {message.status === "draft" && message.channel !== "email" && (
                   <button
                     className="button"
                     disabled={

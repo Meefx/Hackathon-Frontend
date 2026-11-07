@@ -1,18 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { DataState } from "@/components/ui/data-state";
 import { getAccounts } from "@/features/accounts/api";
-import { getAgents } from "@/features/agents/api";
-import { getIntegrations } from "@/features/integrations/api";
 import { useRemote } from "@/hooks/use-remote";
 import { timestamp } from "@/lib/format";
 import { ApiError } from "@/lib/http";
-import { getChatSession, getChatSessions, getTurns } from "../api";
+import { getChatSession, getTurns } from "../api";
 import { useManagerChat } from "../hooks/use-manager-chat";
+import { useManagerRuntime } from "../hooks/use-manager-runtime";
+import type { ManagerSession } from "../types";
+import { ChatSidebar } from "./chat-sidebar";
 import { ChatRunProgress } from "./chat-run-progress";
 import styles from "./manager-chat.module.css";
 
@@ -27,17 +28,14 @@ export function ManagerChat() {
   const querySession = params.get("session");
   const queryAccount = params.get("account");
   const chat = useManagerChat(queryAccount, !querySession);
+  const runtime = useManagerRuntime();
+  const thread = useRef<HTMLDivElement>(null);
   const [question, setQuestion] = useState("");
   const [search, setSearch] = useState("");
   const [accountOffset, setAccountOffset] = useState(0);
-  const [sessionOffset, setSessionOffset] = useState(0);
   const [turnOffset, setTurnOffset] = useState<number | null>(null);
   const [queryResolved, setQueryResolved] = useState(!querySession);
-  const { sessionId, runId, contextAccountId, mode } = chat.journal;
-  const sessions = useRemote(useCallback((signal: AbortSignal) => {
-    void chat.revision;
-    return getChatSessions(sessionOffset, signal);
-  }, [sessionOffset, chat.revision]));
+  const { sessionId, runId, contextAccountId } = chat.journal;
   const accounts = useRemote(useCallback((signal: AbortSignal) => getAccounts(search, "", accountOffset, signal), [search, accountOffset]));
   const turns = useRemote(useCallback(async (signal: AbortSignal) => {
     void chat.revision;
@@ -46,13 +44,7 @@ export function ManagerChat() {
     const first = await getTurns(sessionId, 0, signal);
     return first.total > first.limit ? getTurns(sessionId, first.total - first.limit, signal) : first;
   }, [sessionId, turnOffset, chat.revision]));
-  const agents = useRemote(getAgents);
-  const integrations = useRemote(getIntegrations);
-  const manager = agents.data?.items.find(item => item.role === "manager");
-  const runtime = integrations.data?.items.find(item => item.id === (mode === "simulated" ? "simulated_runtime" : "hermes"));
-  const modeAllowed = runtime
-    ? runtime.implemented && runtime.configured && runtime.health !== "unavailable"
-    : !!manager?.available && manager.runtime_mode === mode;
+  const modeAllowed = runtime.available;
   const selectedAccount = accounts.data?.items.find(item => item.id === contextAccountId);
   const queryLookup = useRemote(useCallback(async (signal: AbortSignal) => {
     if (!querySession) return { session: null, missing: false };
@@ -73,6 +65,10 @@ export function ManagerChat() {
   }, [queryResolved, queryMatch, chat.ready, chat.busy, chat.active, chat.journal.requestKey, chat.selectSession]);
   const locked = chat.locked || !queryResolved;
 
+  useEffect(() => {
+    if (thread.current) thread.current.scrollTop = thread.current.scrollHeight;
+  }, [sessionId, runId, turns.data]);
+
   function startConversation() {
     chat.startNew();
     setQueryResolved(true);
@@ -89,36 +85,34 @@ export function ManagerChat() {
     else url.searchParams.delete("account");
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
   }
+  function chooseSession(session: ManagerSession) {
+    chat.selectSession(session);
+    setQueryResolved(true);
+    setQuestion("");
+    setTurnOffset(null);
+    const url = new URL(window.location.href);
+    url.searchParams.set("session", session.id);
+    if (session.context_account_id) url.searchParams.set("account", session.context_account_id);
+    else url.searchParams.delete("account");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }
   async function send(value: string) {
     if (!value.trim() || locked || !modeAllowed) return;
-    if (await chat.submit(value)) {
+    if (await chat.submit(value, runtime.mode)) {
       setQuestion("");
       setTurnOffset(null);
     }
   }
-  return <AppShell title="Manager">
-    <div className={styles.workspace}>
-      <aside className={styles.sidebar} aria-label="Manager chat sessions">
-        <h2>Conversations</h2>
-        <button className="button" disabled={chat.busy || chat.active || !!chat.journal.requestKey} onClick={startConversation}>New portfolio chat</button>
-        <DataState {...sessions} retry={sessions.refresh} empty={!sessions.data?.items.length}>
-          <ul className={styles.sessions}>{sessions.data?.items.map(item => <li key={item.id}>
-            <button className={`button ${styles.session}`} aria-pressed={sessionId === item.id} disabled={chat.busy || chat.active || !!chat.journal.requestKey || item.origin === "scheduled" || item.account_id !== null} onClick={() => {
-              chat.selectSession(item); setQueryResolved(true); setQuestion(""); setTurnOffset(null);
-            }}>{item.title}<small>{timestamp(item.updated_at)}</small></button>
-          </li>)}</ul>
-          <div className={styles.row}>
-            <button className="button" disabled={!sessionOffset} onClick={() => setSessionOffset(value => Math.max(0, value - 20))}>Previous chats</button>
-            <button className="button" disabled={!sessions.data || sessionOffset + 20 >= sessions.data.total} onClick={() => setSessionOffset(value => value + 20)}>More chats</button>
-          </div>
-        </DataState>
-        <Link href="/manager/tasks">Advanced account tasks</Link>
-        <Link href="/review">Open review queue</Link>
-      </aside>
+  return <AppShell title="Manager" variant="chat" sidebar={<ChatSidebar
+    sessionId={sessionId} revision={chat.revision}
+    locked={!chat.ready || chat.busy || chat.active || !!chat.journal.requestKey}
+    onNew={startConversation} onSelect={chooseSession}
+  />}>
       <section className={styles.conversation} aria-label="Manager conversation">
         <header className={styles.header}>
-          <div><h1>Collection manager</h1><p>Ask about the whole portfolio, then drill into an account. The backend Manager Agent coordinates tools and records evidence.</p></div>
+          <div><h1>Collection manager</h1><p>Tell me what you need. I’ll coordinate the next steps.</p></div>
         </header>
+        <div className={styles.thread} ref={thread}>
         {!queryResolved && queryLookup.loading && <p role="status">Confirming saved portfolio session…</p>}
         {!queryResolved && queryLookup.error && <p role="alert">{queryLookup.error} <button className="button" onClick={queryLookup.refresh}>Retry session lookup</button></p>}
         {!queryResolved && queryLookup.data?.missing && <div className={styles.notice}>
@@ -129,7 +123,6 @@ export function ManagerChat() {
         <div className={styles.context}>
           <strong>{contextAccountId ? `Account context · ${selectedAccount?.borrower_name || contextAccountId}` : "Whole portfolio"}</strong>
           {contextAccountId && <>
-            <Link href={`/accounts/${encodeURIComponent(contextAccountId)}`}>Open account workspace</Link>
             <button className="button" disabled={locked} onClick={() => chooseContext(null)}>Return to portfolio</button>
           </>}
         </div>
@@ -150,6 +143,7 @@ export function ManagerChat() {
             <strong>{turn.role === "operator" ? "You" : "Manager"}</strong>
             <p>{turn.content}</p>
             <small>{timestamp(turn.created_at)} {turn.run_id && <Link href={`/runs/${encodeURIComponent(turn.run_id)}`}>Inspect evidence</Link>}</small>
+            {turn.role === "manager" && turn.run_id && turn.run_id !== runId && <ChatRunProgress id={turn.run_id} />}
           </li>)}</ol>
           {turns.data && turns.data.total > turns.data.limit && <div className={styles.row}>
             <button className="button" disabled={!turns.data.offset} onClick={() => setTurnOffset(Math.max(0, (turns.data?.offset || 0) - 20))}>Earlier messages</button>
@@ -171,21 +165,21 @@ export function ManagerChat() {
         </section>}
         {chat.error && <p className={styles.notice} role="alert">{chat.error}</p>}
         {chat.storageWarning && <p className={styles.notice} role="status">Browser storage is unavailable. Keep this page open to preserve chat recovery.</p>}
+        </div>
         <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(question); }}>
-          <label className={styles.runtime}>Chat runtime<select value={mode} disabled={locked} onChange={event => chat.changeMode(event.target.value as "simulated" | "hermes")}><option value="simulated">Simulated</option><option value="hermes">Hermes</option></select></label>
-          <p className={styles.muted}>{mode === "simulated" ? "Simulated demo · synthetic responses and tool evidence" : "Hermes · backend agent runtime with MCP tools"}</p>
-          {runtime?.health === "unknown" && modeAllowed && <p role="status">Runtime configured. Live health is unverified and the backend validates execution.</p>}
-          {!modeAllowed && <p role="status">Selected chat runtime is unavailable. <button type="button" className="button" onClick={() => { agents.refresh(); integrations.refresh(); }}>Recheck runtime</button></p>}
-          {agents.error && <p role="alert">{agents.error}</p>}
-          {integrations.error && <p role="alert">{integrations.error}</p>}
           <label>Message the manager<textarea required maxLength={2000} value={question} disabled={locked} onChange={event => setQuestion(event.target.value)} placeholder={contextAccountId ? "Ask about this account…" : "Ask about portfolio priorities, risk, or next steps…"} /></label>
-          <div className={styles.row}><button className="button primary" type="submit" disabled={locked || !modeAllowed || !question.trim()}>{chat.busy ? "Submitting…" : chat.active ? "Manager is working…" : "Send message"}</button><small className={styles.muted}>Task suggestions require your explicit action. Dispatch remains in the account workspace.</small></div>
+          <div className={styles.composerFooter}>
+            <small className={styles.muted}>{runtime.loading ? "Checking manager availability…" : runtime.mode === "simulated" ? "Simulated demo · synthetic responses" : "Hermes · backend agent runtime"}</small>
+            <button className="button primary" type="submit" disabled={locked || !modeAllowed || !question.trim()}>{chat.busy ? "Submitting…" : chat.active ? "Manager is working…" : "Send message"}</button>
+          </div>
+          {!runtime.loading && !modeAllowed && <p role="status">Selected chat runtime is unavailable. <Link href="/settings">Open Settings</Link> <button type="button" className="button" onClick={runtime.refresh}>Recheck runtime</button></p>}
+          {runtime.health === "unknown" && modeAllowed && <p role="status">Runtime configured. Live health is unverified and the backend validates execution.</p>}
+          {runtime.error && <p role="alert">{runtime.error}</p>}
         </form>
       </section>
-    </div>
   </AppShell>;
 
   async function sendRetry() {
-    if (await chat.submit(question)) { setQuestion(""); setTurnOffset(null); }
+    if (await chat.submit(question, runtime.mode)) { setQuestion(""); setTurnOffset(null); }
   }
 }

@@ -104,18 +104,18 @@ export function useManagerChat(initialContext: string | null, restoreSaved: bool
     };
   }, [restoreSaved, recover]);
 
-  async function submit(instruction: string) {
+  async function submit(instruction: string, runtimeMode = journal.mode) {
     if (!ready || locked.current || active || (journal.requestKey && !pending.current)) return false;
     locked.current = true;
     setBusy(true);
     setError("");
     const body: ChatRunRequest = pending.current || {
-      instruction: instruction.trim(), runtime_mode: journal.mode,
+      instruction: instruction.trim(), runtime_mode: runtimeMode,
       idempotency_key: crypto.randomUUID(), manager_session_id: journal.sessionId,
       context_account_id: journal.contextAccountId,
     };
     pending.current = body;
-    const saved = { ...current.current, requestKey: body.idempotency_key };
+    const saved = { ...current.current, mode: body.runtime_mode, requestKey: body.idempotency_key };
     save(saved);
     try {
       const response = await startChatRun(body);

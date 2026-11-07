@@ -1,0 +1,50 @@
+.canvas { position: relative; height: 100%; width: 100%; background: #fcfaf7; isolation: isolate; }
+.canvas :global(.react-flow) { --xy-background-color: #fcfaf7; --xy-node-border-radius: 10px; --xy-minimap-border-radius: 8px; }
+.canvas :global(.react-flow__node-concept) { border-radius: 9px; }
+.canvas :global(.react-flow__node-concept:focus-visible) { outline: 3px solid var(--brand); outline-offset: 4px; }
+.canvas :global(.react-flow__attribution) { font-size: 7px; background: #fcfaf7c9; padding: 3px 5px; }
+.concept { width: 180px; min-height: 79px; padding: 11px 13px 12px; border: 1px solid color-mix(in srgb, var(--category-color) 24%, #fff); border-radius: 9px; background: #fff; box-shadow: 0 3px 9px #4b3a2e06; transition: opacity .16s, box-shadow .16s, border-color .16s; cursor: grab; }
+.concept:active { cursor: grabbing; }
+.concept:hover { border-color: var(--category-color); box-shadow: 0 4px 18px #4b3a2e0d; }
+.nodeTop { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.nodeIcon { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 6px; background: var(--category-background); color: var(--category-color); flex-shrink: 0; }
+.nodeCategory { font-size: 10px; font-weight: 500; color: var(--category-color); }
+.connectionCount { margin-left: auto; font-size: 8px; color: #a1968e; background: #f9f7f4; border: 1px solid #f0eae5; border-radius: 4px; padding: 2px 4px; }
+.nodeTitle { font-size: 14px; line-height: 1.4; color: #51463f; font-weight: 600; letter-spacing: -.2px; }
+.selected { border-color: var(--brand); box-shadow: 0 0 0 3px #ee4d2d13, 0 5px 18px #ee4d2d0c; }
+.matched { box-shadow: 0 0 0 3px #dfac6745; border-color: #d7aa66; }
+.dimmed { opacity: .47; }
+.dimmed:hover { opacity: 1; }
+.handle { width: 5px; height: 5px; border: 1px solid white; background: var(--category-color); opacity: .6; pointer-events: none; }
+.selected .handle { opacity: 1; background: var(--brand); }
+.canvasCaption { display: flex; align-items: center; gap: 6px; position: absolute; z-index: 4; top: 19px; left: 17px; color: #a09284; font-size: 8px; font-weight: 600; letter-spacing: .8px; pointer-events: none; }
+.canvasCaption > span:last-child { letter-spacing: 0; font-size: 9px; font-weight: 400; }
+.liveDot { height: 5px; width: 5px; border-radius: 50%; background: #bfad98; }
+.captionDivider { color: #c5b9ae; margin: 0 3px; }
+.controls { display: flex; align-items: center; position: absolute; z-index: 5; bottom: 42px; left: 16px; padding: 3px; border: 1px solid #e9dfd7; border-radius: 7px; background: #fff; box-shadow: 0 2px 10px #5a382509; }
+.controls button { height: 29px; width: 29px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: white; color: #846e60; }
+.controls button:hover { background: #fff1e7; color: var(--brand-strong); }
+.zoomValue { min-width: 36px; text-align: center; color: #8d7b6d; font-size: 9px; font-variant-numeric: tabular-nums; }
+.controlDivider { width: 1px; height: 17px; background: #eee4dd; margin: 0 4px; }
+.minimap { width: 115px; height: 77px; bottom: 30px; right: 10px; border: 1px solid #e8ded6; border-radius: 7px; box-shadow: 0 3px 10px #5a382505; overflow: hidden; }
+.canvasHint { position: absolute; z-index: 3; bottom: 17px; left: 18px; display: flex; gap: 14px; pointer-events: none; }
+.canvasHint span { color: #aa9a8e; font-size: 8px; }
+.canvasHint span + span::before { content: "·"; margin-right: 14px; color: #bdae9e; }
+.emptyOverlay { position: absolute; z-index: 6; inset: 50px 0 90px; display: grid; place-items: center; pointer-events: none; }
+.emptyCard { max-width: 290px; padding: 26px; text-align: center; background: #fffdfaf5; border: 1px solid #e8dbd0; border-radius: 12px; pointer-events: auto; box-shadow: 0 10px 30px #52392a06; }
+.emptyCard > svg { color: #bd9e88; margin-bottom: 17px; }
+.emptyCard h3 { color: #705949; font-weight: 500; font-size: 17px; }
+.emptyCard p { margin: 9px 0 17px; color: #a08b7b; font-size: 11px; }
+.emptyCard button { font-size: 11px; }
+.relationshipCard { position: absolute; z-index: 6; bottom: 92px; left: 16px; width: min(330px, calc(100% - 32px)); padding: 16px; border-radius: 8px; border: 1px solid #e4c7b5; background: #fffefc; box-shadow: 0 6px 25px #52392a0d; }
+.relationshipEyebrow { display: block; color: #b48665; font-weight: 600; font-size: 8px; letter-spacing: .8px; margin-bottom: 10px; }
+.relationshipPath { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.relationshipPath > button { border: 0; background: transparent; font-size: 11px; font-weight: 600; color: #6d4c37; padding: 0; text-align: left; }
+.relationshipPath > button:hover { text-decoration: underline; }
+.relationshipPath > span { display: flex; align-items: center; gap: 7px; font-size: 9px; color: #b08365; }
+.relationshipCard p { margin-top: 9px; font-size: 10px; color: #9c8473; line-height: 1.7; }
+.closeRelationship { position: absolute; right: 9px; top: 9px; display: grid; place-items: center; padding: 3px; border: 0; border-radius: 4px; background: transparent; color: #ab9382; }
+.closeRelationship:hover { background: #fff1e7; }
+@media (max-width: 1200px) { .canvasHint > span:last-child { display: none; } .minimap { width: 92px; height: 64px; } }
+@media (max-width: 780px) { .minimap { width: 90px; height: 60px; } .canvasCaption { top: 17px; left: 13px; } .canvasHint { left: 14px; gap: 9px; } .canvasHint span + span::before { margin-right: 9px; } .controls { left: 12px; } }
+@media (prefers-reduced-motion: reduce) { .concept { transition: none; } }

@@ -8,5 +8,5 @@ export const getGmailCollectionDemoStatus = (signal?: AbortSignal) =>
   get<GmailCollectionDemoStatus>(gmailDemoPath, signal);
 export const getGmailCollectionDemo = (id: string, signal?: AbortSignal) =>
   get<GmailCollectionDemo>(`${gmailDemoPath}/${encodeURIComponent(id)}`, signal);
-export const startGmailCollectionDemo = (idempotencyKey: string) =>
-  post<GmailCollectionDemo>(gmailDemoPath, { idempotency_key: idempotencyKey });
+export const startGmailCollectionDemo = (idempotencyKey: string, runtimeMode: "simulated" | "hermes") =>
+  post<GmailCollectionDemo>(gmailDemoPath, { idempotency_key: idempotencyKey, runtime_mode: runtimeMode });

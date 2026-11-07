@@ -90,3 +90,32 @@ export interface VersionAction {
   expected_version: number;
   idempotency_key: string;
 }
+
+export interface RuntimeActivityEvent {
+  sequence: number;
+  type: "subagent.start" | "subagent.complete" | "tool.started" | "tool.completed" | "run.started" | "run.completed" | "run.failed" | "run.cancelled";
+  agent_id: string;
+  parent_agent_id: string | null;
+  tool_name: string | null;
+  tool_call_id?: string | null;
+  status: "running" | "completed" | "failed" | "cancelled" | null;
+  created_at: string | null;
+}
+export interface RuntimeActivityPage {
+  source: "hermes" | "simulated" | "backend";
+  status: "available" | "unavailable" | "not_started";
+  events: RuntimeActivityEvent[];
+  next_sequence: number;
+  has_more: boolean;
+  truncated: boolean;
+  reason_code: string | null;
+}
+export interface RunActivityState {
+  source: RuntimeActivityPage["source"];
+  status: RuntimeActivityPage["status"];
+  events: RuntimeActivityEvent[];
+  truncated: boolean;
+  reasonCode: string | null;
+  error: string;
+  loading: boolean;
+}

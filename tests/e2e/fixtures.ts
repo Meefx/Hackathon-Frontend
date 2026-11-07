@@ -63,6 +63,8 @@ export async function fixture(page: Page) {
         overdue_amount: 37200000,
         buckets: [{ status: "early", count: 31, outstanding_amount: 37200000 }],
       };
+    else if (path === "/api/v1/whatsapp/messages")
+      body = { items: [], total: 0, limit: 10, offset: 0 };
     else if (path === "/api/v1/accounts")
       body = {
         ...list([account]),

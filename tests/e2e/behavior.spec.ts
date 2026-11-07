@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => fixture(page));
 test("account filtering resets pagination and dialog Escape restores focus", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/overview");
   await expect(page.getByText("31", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByText("Showing 11–20 of 31 accounts")).toBeVisible();
@@ -37,10 +37,14 @@ test("mobile navigation stays within viewport", async ({ page }) => {
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("link", { name: "Integrations", exact: true }).click();
+  await page.getByRole("complementary").getByRole("link", { name: "Integrations", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Integrations", exact: true }),
   ).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page.getByLabel("Chat runtime")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test("account missing is an error state with retry", async ({ page }) => {
   await page.goto("/accounts/missing");

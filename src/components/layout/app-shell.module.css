@@ -1,26 +1,145 @@
 .content {
   min-width: 0;
 }
-@media (max-width: 700px) {
-  .content {
-    padding: 24px 16px;
-  }
+
+.sidebar {
+  background: var(--canvas);
+  border-right: 1px solid var(--line);
+  color: var(--ink);
+  gap: 28px;
+  padding: 28px 18px 20px;
 }
+
+.brand {
+  color: var(--ink);
+  padding: 0 8px;
+}
+
+.brand :global(.brand-mark) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--white);
+}
+
+.sidebar .navigation {
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.navLink {
+  display: block;
+  padding: 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.navLink:hover,
+.active {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.sidebar a:focus-visible {
+  outline-color: var(--brand);
+}
+
+.footer {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.footer small {
+  padding: 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.chatWorkspace {
+  height: 100dvh;
+  min-height: 500px;
+}
+
+.chatMain {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatMain :global(.topbar) {
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.chatContent {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  max-width: 1180px;
+  padding: 24px 42px 20px;
+}
+
 @media (max-width: 780px) {
   .sidebar {
+    position: static;
+    width: 100%;
     flex-direction: column;
     align-items: stretch;
     gap: 14px;
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
-  .sidebar nav {
+
+  .brand {
+    align-self: flex-start;
+  }
+
+  .sidebar .navigation {
+    display: flex;
     overflow-x: auto;
     max-width: 100%;
-    padding-bottom: 3px;
+    padding: 6px;
   }
-  .sidebar nav a {
-    flex-shrink: 0;
+
+  .navigation .navLink {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
-  .sidebar > a {
-    align-self: flex-start;
+
+  .footer {
+    position: absolute;
+    right: 16px;
+    top: 14px;
+  }
+
+  .footer small {
+    display: none;
+  }
+
+  .chatWorkspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 650px;
+  }
+
+  .chatMain {
+    flex: 1;
+    min-height: 0;
+    margin-left: 0;
+  }
+
+  .chatMain :global(.topbar) {
+    display: none;
+  }
+
+  .content {
+    padding: 24px 16px;
+  }
+
+  .chatContent {
+    padding: 18px 16px 12px;
   }
 }
