@@ -10,7 +10,7 @@ Requires Node.js 22+ (Node 24 recommended) and npm.
 git clone https://github.com/Meefx/Hackathon-Frontend.git
 cd Hackathon-Frontend
 cp .env.example .env.local
-npm install
+npm ci
 npm run dev
 ```
 
@@ -34,7 +34,7 @@ npm run build
 npm start
 ```
 
-Commit `package-lock.json` after the first successful `npm install`, then use `npm ci` for reproducible installs. Dependency resolution and build require npm registry access.
+Dependencies are pinned in `package-lock.json`; use `npm ci` for reproducible installs. GitHub Actions runs the typecheck and production build on pushes and pull requests. Dependency installation requires npm registry access.
 
 ## Structure
 
