@@ -21,9 +21,10 @@
   color: var(--white);
 }
 
-.navigation {
+.sidebar .navigation {
   display: grid;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .navLink {
@@ -96,8 +97,16 @@
     align-self: flex-start;
   }
 
-  .navigation {
+  .sidebar .navigation {
     display: flex;
+    overflow-x: auto;
+    max-width: 100%;
+    padding: 6px;
+  }
+
+  .navigation .navLink {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .footer {

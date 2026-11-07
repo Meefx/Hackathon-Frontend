@@ -122,7 +122,7 @@ export function ConversationPanel({
     }
   }
   return (
-    <section className={styles.panel}>
+    <section id="conversation" className={styles.panel}>
       <h2>Conversation</h2>
       <p>
         Dispatch decisions are enforced by the backend. Channel availability is shown in{" "}

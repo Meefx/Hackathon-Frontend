@@ -1,6 +1,7 @@
 interface GmailDemoJournal {
   demoId: string | null;
   idempotencyKey: string | null;
+  runtimeMode: "simulated" | "hermes";
 }
 
 const key = "graceline.gmail-collection-demo.v1";
@@ -12,7 +13,12 @@ export function readGmailDemoJournal(): GmailDemoJournal | null {
     const item = value as Record<string, unknown>;
     const validId = (id: unknown) => id === null || (typeof id === "string" && id.length > 0);
     if (!validId(item.demoId) || !validId(item.idempotencyKey)) return null;
-    return { demoId: item.demoId as string | null, idempotencyKey: item.idempotencyKey as string | null };
+    if (item.runtimeMode !== undefined && item.runtimeMode !== "simulated" && item.runtimeMode !== "hermes") return null;
+    return {
+      demoId: item.demoId as string | null,
+      idempotencyKey: item.idempotencyKey as string | null,
+      runtimeMode: item.runtimeMode === "hermes" ? "hermes" : "simulated",
+    };
   } catch {
     return null;
   }

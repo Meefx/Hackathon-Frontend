@@ -12,6 +12,7 @@ import styles from "@/components/ui/panels.module.css";
 export function GmailCollectionDemoPanel() {
   const [configuration, setConfiguration] = useState<GmailCollectionDemoStatus | null>(null);
   const [demo, setDemo] = useState<GmailCollectionDemo | null>(null);
+  const [runtimeMode, setRuntimeMode] = useState<"simulated" | "hermes">("simulated");
   const [journal, setJournal] = useState<ReturnType<typeof readGmailDemoJournal>>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -34,6 +35,7 @@ export function GmailCollectionDemoPanel() {
     const controller = new AbortController();
     const saved = readGmailDemoJournal();
     setJournal(saved);
+    if (saved) setRuntimeMode(saved.runtimeMode);
     setReady(false);
     setError("");
     async function load() {
@@ -47,8 +49,9 @@ export function GmailCollectionDemoPanel() {
         if (controller.signal.aborted) return;
         setDemo(restored);
         if (restored) {
-          const next = { demoId: restored.id, idempotencyKey: saved?.idempotencyKey || null };
+          const next = { demoId: restored.id, idempotencyKey: saved?.idempotencyKey || null, runtimeMode: restored.runtime_mode };
           setJournal(next);
+          setRuntimeMode(restored.runtime_mode);
           setStorageWarning(!writeGmailDemoJournal(next));
         }
       } catch (reason) {
@@ -92,13 +95,14 @@ export function GmailCollectionDemoPanel() {
     setError("");
     const existingKey = uncertain ? journal?.idempotencyKey : null;
     const key = existingKey || crypto.randomUUID();
-    const pending = { demoId: null, idempotencyKey: key };
+    const mode = existingKey && journal ? journal.runtimeMode : runtimeMode;
+    const pending = { demoId: null, idempotencyKey: key, runtimeMode: mode };
     setJournal(pending);
     setDemo(null);
     setStorageWarning(!writeGmailDemoJournal(pending));
     try {
-      const value = await startGmailCollectionDemo(key);
-      const accepted = { demoId: value.id, idempotencyKey: key };
+      const value = await startGmailCollectionDemo(key, mode);
+      const accepted = { demoId: value.id, idempotencyKey: key, runtimeMode: mode };
       if (mounted.current || readGmailDemoJournal()?.idempotencyKey === key) {
         const stored = writeGmailDemoJournal(accepted);
         if (mounted.current) {
@@ -117,7 +121,15 @@ export function GmailCollectionDemoPanel() {
 
   return <section className={styles.item} aria-label="Gmail collection demo">
     <h3>Collection email demo</h3>
-    <p><strong>Simulated agent runtime</strong> · Real Gmail test delivery</p>
+    <label>
+      Email agent runtime
+      <select value={runtimeMode} disabled={!ready || busy || active || uncertain} onChange={event => setRuntimeMode(event.target.value === "hermes" ? "hermes" : "simulated")}>
+        <option value="simulated">Simulated</option>
+        <option value="hermes">Hermes</option>
+      </select>
+    </label>
+    <p><strong>{runtimeMode === "hermes" ? "Hermes agent runtime" : "Simulated agent runtime"}</strong> · Real Gmail test delivery</p>
+    {runtimeMode === "hermes" && <p className={styles.muted}>Hermes drafts use demo screening restricted to synthetic test recipients. Configure the Hermes runtime and MCP connection in the backend.</p>}
     <p>Each new demo creates a synthetic borrower, prepares a collection draft, checks backend dispatch gates, and emails the fixed team test mailbox.</p>
     <p>Fixed test recipient <strong>{demo?.recipient_masked || configuration?.recipient_masked || "Not configured"}</strong></p>
     {!ready && <p role="status">Loading email demo status…</p>}

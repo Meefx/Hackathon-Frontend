@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getRun, getRunEvents } from "../api";
 import type { RunEvent, RunSnapshot } from "../types";
 import { errorMessage } from "@/lib/http";
+import { useRunActivity } from "./use-run-activity";
 
 export function useRunPolling(id: string) {
   const [run, setRun] = useState<RunSnapshot | null>(null);
@@ -88,9 +89,13 @@ export function useRunPolling(id: string) {
     };
   }, [id, revision]);
 
+  const visibleRun = run?.id === id ? run : null;
+  const activity = useRunActivity(id, visibleRun, revision);
+
   return {
-    run,
-    events,
+    run: visibleRun,
+    events: visibleRun ? events : [],
+    activity,
     error,
     delayed,
     refresh: () => setRevision((value) => value + 1),

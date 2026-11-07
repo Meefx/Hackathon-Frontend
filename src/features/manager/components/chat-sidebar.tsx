@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { WorkspaceNavigation } from "@/components/layout/workspace-navigation";
 import { DataState } from "@/components/ui/data-state";
 import { useRemote } from "@/hooks/use-remote";
 import { timestamp } from "@/lib/format";
@@ -34,7 +34,7 @@ export function ChatSidebar({ sessionId, locked, revision, onNew, onSelect }: {
     <button className={`button ${styles.newChat}`} disabled={locked} onClick={onNew}>
       <span aria-hidden="true">＋</span> New portfolio chat
     </button>
-    <Link className={styles.portalLink} href="/portal">Portal <span aria-hidden="true">↗</span></Link>
+    <WorkspaceNavigation />
     <details className={styles.history} open={historyOpen} onToggle={event => setHistoryOpen(event.currentTarget.open)}>
       <summary>Conversations</summary>
       <DataState {...sessions} retry={sessions.refresh}>

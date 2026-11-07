@@ -27,19 +27,39 @@ async function configureHermes(page: Page) {
   })) } }));
 }
 
-test("landing opens one conversation sidebar and moves operational navigation to settings", async ({ page }) => {
+test("workspace tools are accessible from the sidebar while settings contains runtime controls", async ({ page }) => {
   await workspaceFixture(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Collection manager" })).toBeVisible();
   await expect(page.getByRole("complementary")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "New portfolio chat" })).toBeVisible();
   await expect(page.getByLabel("Chat runtime")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Accounts", exact: true })).toHaveCount(0);
+  const sidebar = page.getByRole("complementary");
+  for (const name of ["Portfolio overview", "Accounts", "Human review", "Agents", "Knowledge graph", "Integrations", "Advanced account tasks"]) {
+    await expect(sidebar.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  await sidebar.getByRole("link", { name: "Accounts", exact: true }).click();
+  await expect(page).toHaveURL(/\/accounts$/);
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Portfolio overview", exact: true }).click();
+  await expect(page.getByLabel("Chat runtime")).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link")).toHaveCount(0);
+  await expect(sidebar.getByRole("link", { name: "Settings", exact: true })).toHaveAttribute("aria-current", "page");
+  await sidebar.getByRole("link", { name: "Portfolio overview", exact: true }).click();
   await expect(page).toHaveURL(/\/portal$/);
   await expect(page.getByRole("heading", { name: "Collections overview" })).toBeVisible();
+});
+
+test("sidebar highlights the portfolio alias, account details, and advanced tasks", async ({ page }) => {
+  await workspaceFixture(page);
+  const sidebar = page.getByRole("complementary");
+  await page.goto("/overview");
+  await expect(sidebar.getByRole("link", { name: "Portfolio overview", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.goto("/accounts/A001");
+  await expect(sidebar.getByRole("link", { name: "Accounts", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.goto("/manager/tasks");
+  await expect(sidebar.getByRole("link", { name: "Advanced account tasks", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
 });
 
 test("configured manager runtime is used without asking for a technical choice in chat", async ({ page }) => {
@@ -384,7 +404,7 @@ test("selecting another saved chat updates its direct link and survives reload",
 test("portal is directly accessible from chat and an account can be discussed with the manager", async ({ page }) => {
   await workspaceFixture(page);
   await page.goto("/");
-  await page.getByRole("link", { name: "Portal", exact: true }).click();
+  await page.getByRole("link", { name: "Portfolio overview", exact: true }).click();
   await expect(page).toHaveURL(/\/portal$/);
   await expect(page.getByRole("heading", { name: "Collections overview" })).toBeVisible();
   const accountRow = page.getByRole("row").filter({ hasText: "Synthetic Borrower" });

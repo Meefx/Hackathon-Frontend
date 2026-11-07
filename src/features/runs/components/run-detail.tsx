@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { useRunPolling } from "../hooks/use-run-polling";
+import { AgentActivityMap } from "./agent-activity-map";
 import { cancelRun, recoverRun } from "../api";
 import { KnowledgeEvidence, citationAnchor } from "@/features/knowledge";
 import { reasonLabel } from "@/features/compliance/reasons";
@@ -184,6 +185,7 @@ export function RunDetail({ runId }: { runId: string }) {
               </button>
             )}
           </section>
+          <AgentActivityMap key={run.id} run={run} activity={state.activity} onRefresh={state.refresh} />
           <section className={styles.panel}>
             <h2>Specialist steps</h2>
             {!run.steps.length && <p>No steps reported yet.</p>}

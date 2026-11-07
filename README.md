@@ -21,22 +21,38 @@ For Hermes, configure the remote runtime/bridge and MCP endpoint in the backend 
 ## Portal
 
 - `/` and `/manager`: the main Manager conversation, saved chats, optional account context, task results and draft review in one workspace.
-- `/settings`: Manager runtime preference and links to operational tools. The initial runtime follows the backend Manager configuration. An explicit browser preference applies to the next available chat turn.
-- `/portal`: whole-portfolio totals, daily automation activity, account lists and aging/status filters. Account details offer a contextual **Discuss with manager** handoff. `/overview` remains an alias.
+- `/settings`: Manager runtime preference. The initial runtime follows the backend Manager configuration. An explicit browser preference applies to the next available chat turn.
+- `/portal`: whole-portfolio totals, daily automation activity, account lists and aging/status filters. **Agent WhatsApp messages** shows full outbound message text, borrower, loan reference, Jakarta timestamp and persisted delivery status, with newest-first pagination, a 15-second refresh, and links to the account conversation. Failed and unconfirmed dispatch attempts are labeled explicitly. Account details offer a contextual **Discuss with manager** handoff. `/overview` remains an alias.
 - `/accounts`: search, filtering, pagination and accessible detail dialog.
 - `/accounts/{id}`: facts, contact policy, conversations, simulated inbound/dispatch, takeover/resume, run history and read-only audit.
-- The chat sidebar contains new chat, Portal, conversation history and Settings. Account search and evidence expand in context.
+- The sidebar provides Portfolio overview, Accounts, Human review, Agents, Knowledge graph, Integrations, Advanced account tasks and Settings across the workspace. Chat also includes new chat and conversation history. Navigation scrolls horizontally on mobile. Account search and evidence expand in context.
 - `/manager/tasks` retains advanced account tasks and account session history for follow up, collector brief and improvement review.
-- `/runs/{id}`: persisted status, ordered specialist evidence, artifacts, immutable knowledge snapshots, events, cancellation and permitted recovery.
+- `/runs/{id}`: agent activity map, persisted status, ordered specialist evidence, artifacts, immutable knowledge snapshots, events, cancellation and permitted recovery. The same map appears in the Manager chat while a task runs.
 - `/agents`: six role profiles with configured and available status.
+- `/knowledge`: interactive knowledge graph with local, explicitly synthetic concepts and source references. Opens independently of the API.
 - `/review`: human escalation queue, resolution and separate case resume outcome.
 - `/integrations`: sanitized runtime, knowledge, MCP, guardrail and channel status.
 
-Only `simulated_chat` dispatches synthetic messages. WhatsApp, email and phone are explicit unavailable provider skeletons. Policy, recipient, knowledge references, approval and dispatch gates are owned by the backend.
+Synthetic messages use `simulated_chat`, the opt-in WhatsApp self-chat sandbox, or the dedicated fixed-recipient Gmail demo. Hermes sandbox drafts use labeled demo screening. Phone remains unavailable. Policy, recipient, knowledge references, approval and dispatch gates are owned by the backend.
 
 The Gmail API sandbox appears separately in Integrations with configuration and connection health. Configure OAuth credentials and a fixed team test recipient in the backend, then run `uv run python -m app.integrations.gmail authorize` and `uv run python -m app.integrations.gmail send-test --request-id 00000000-0000-4000-8000-000000000001` from its terminal. Reuse the request ID for an exact retry. Choose a fresh UUID for each intentional new test. The test sends fixed synthetic content to the configured team mailbox. A successful send confirms Gmail API acceptance. Verify recipient delivery in the test mailbox. Provider credentials stay in the backend environment.
 
 In `/integrations`, the Gmail card also offers **Run email collection demo**. Each click creates a fresh synthetic borrower and runs simulated agent draft generation, backend dispatch gates and real Gmail delivery to the fixed team test mailbox. The card shows the masked recipient, persisted job status, account/run links and Gmail provider message ID. Reload recovers the saved demo through read requests. An unconfirmed acceptance offers **Retry same email demo** with its original request key. After a terminal outcome, **Run another email demo** creates a new request. Opening the page reads status. `submitted` confirms Gmail API acceptance. Check the test inbox to verify delivery. `delivery_unknown` keeps its outcome visible for an operator decision.
+
+## Knowledge graph demo
+
+Run the graph on its own with Node.js 22+ and npm:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open [http://localhost:3000/knowledge](http://localhost:3000/knowledge), or choose **Knowledge graph** in the sidebar. No backend or environment variables are required for this route. Other portal features retain their backend requirements.
+
+The canvas uses React Flow (`@xyflow/react`) for pan, wheel/pinch zoom, draggable nodes, a pannable minimap, fit-to-view, and resetting node positions. Select a concept to highlight its direct relationships and inspect descriptions, incoming/outgoing connections, and expandable source excerpts. Use **Focus connections** to isolate its neighborhood. Search includes descriptions, tags, and source references; matching concepts appear with their connected context. Category chips, the relationship filter, and the edge-label toggle refine the view. Nodes support keyboard selection and movement through React Flow's built-in accessibility controls.
+
+The feature lives in `src/features/knowledge/graph/`. `types.ts` defines the semantic knowledge model, `demo-data.ts` contains 22 concepts, 36 directed relationships, and four synthetic source records. `graph-model.ts` keeps filtering, validation, and presentation positions separate from the dataset. To connect a real knowledge source later, replace `loadDemoGraph()` with a source adapter that returns the typed model and validates references. Local source IDs use `demo://` and are displayed as provenance text. The existing run knowledge evidence API is independent of this demo; graph relationships do not determine eligibility or authorize collection actions. Loading, source-load retry, no-selection, and no-filter-results states are included.
 
 ## Recovery
 
@@ -45,6 +61,10 @@ The manager stores only account/session/run IDs, an idempotency request key, run
 Chat sends free-text instructions to the backend Manager Agent. Simulated mode labels synthetic responses and evidence explicitly. Hermes uses the configured backend runtime and MCP tools. Proposed account tasks require an operator click. Acceptance first reads for an existing task using the proposal artifact ID as its stable idempotency key, then submits the exact proposal payload. Progress, specialist results and earlier task proposals remain in the conversation. Follow-up drafts load their authoritative message and contact policy before offering **Approve simulated send** in chat. The backend rechecks every dispatch gate. Drafts for other channels link to their existing account controls. Human review resolution is available through Settings and the review queue.
 
 Run polling has no overlapping requests, aborts on navigation, backs off during connection errors and preserves monotonically increasing versions/event sequences. “Status update delayed” preserves the last confirmed outcome. Cancellation is a request until worker confirmation. Reconcile/retry controls follow backend `allowed_actions`. Review resolution can leave the case paused; resume never sends a message.
+
+The agent activity map shows Manager and subagents observed in native Hermes lifecycle events. Select a node to inspect its runtime ID, status, last event and available tool activity. Parallel children can appear active together. Specialist profile names are shown only when evidenced by the runtime; current Hermes lifecycle events identify children by ID. Simulated runs use explicitly labeled persisted simulator steps. Activity refreshes separately from run status so a telemetry outage preserves the task and its recorded output.
+
+Detailed Hermes activity is read from the runtime's bounded event replay. A replay gap, expired event history or interrupted connection is shown explicitly. A child with no confirmed completion becomes unverified when its parent run ends. Run status, artifacts and the existing evidence history remain persisted in the backend. The activity view requires the backend `GET /api/v1/runs/{id}/activity` endpoint.
 
 ## Checks
 
@@ -93,3 +113,14 @@ tests/smoke/             Actual backend/worker/PostgreSQL journeys
 ```
 
 Pydantic models and backend OpenAPI are the executable HTTP contract. Ordinary histories use `{items,total,limit,offset}`; run knowledge is a list of immutable snapshots to support additional retrievals in one run. The evidence panel loads 20 snapshots per request, caches explicitly loaded pages and offers next-page and numbered-page controls. Citations remain pending while history pages are unloaded, then link to the loaded source. Critical context previews are bounded to 20 entries and 8,000 characters per entry. Stored retrieval profiles and provenance hashes are displayed when available. Synthetic source URIs remain plain provenance text. No secret belongs in `NEXT_PUBLIC_*`, a fixture, or the client bundle.
+
+### Hermes test delivery
+
+A Hermes follow-up for a synthetic account linked through **Connect WhatsApp test channel**
+can produce an approved WhatsApp draft. Use **Send WhatsApp test** to deliver it to self-chat.
+In Integrations, select **Hermes** under **Email agent runtime**, then **Run email collection demo**
+to generate and automatically deliver a synthetic draft to the fixed backend test mailbox.
+The worker and Hermes MCP connection must be running. Backend sandbox screening, contact policy,
+recipient verification and signed dispatch approvals apply. The demo classifier is labeled
+`sandbox_demo_fixture`. The browser persists the selected runtime with an uncertain request
+so retry after reload recovers the same account, run and delivery.

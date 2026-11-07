@@ -10,6 +10,7 @@
   justify-content: flex-start;
   width: 100%;
   border-color: var(--brand-border);
+  flex-shrink: 0;
 }
 
 .newChat span {
@@ -340,22 +341,13 @@
   justify-content: space-between;
 }
 
-.settingsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.settingsGrid a:hover {
-  border-color: var(--brand-border);
-}
-
 @media (max-width: 780px) {
   .chatSidebar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    display: flex;
     align-items: start;
     gap: 12px;
+    flex: initial;
+    width: 100%;
   }
 
   .history {
@@ -364,8 +356,8 @@
   }
 
   .history[open] {
-    grid-column: 1 / -1;
     padding-top: 0;
+    width: 100%;
   }
 
   .history .sessions {
@@ -394,8 +386,7 @@
     font-size: 25px;
   }
 
-  .prompts,
-  .settingsGrid {
+  .prompts {
     grid-template-columns: 1fr;
   }
 
@@ -450,19 +441,4 @@
 .resultText {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-.portalLink {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-radius: 9px;
-  padding: 12px 10px;
-  font-weight: 600;
-}
-
-.portalLink:hover {
-  color: var(--brand-strong);
-  background: var(--brand-soft);
 }

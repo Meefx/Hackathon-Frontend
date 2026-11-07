@@ -8,6 +8,7 @@ import type { Dashboard } from "@/features/dashboard/types";
 import { getAccounts } from "@/features/accounts/api";
 import { AutomationSummary } from "@/features/automation/components/automation-summary";
 import { getDashboard } from "@/features/dashboard/api";
+import { WhatsAppMessageFeed } from "@/features/conversations";
 import { statusLabels } from "@/features/accounts/constants";
 import { currency, formatDate } from "@/lib/format";
 
@@ -82,6 +83,7 @@ export function CollectionWorkspace({ view }: { view: "overview" | "accounts" })
 
         {view === "overview" && <>
           <AutomationSummary revision={revision} />
+          <WhatsAppMessageFeed revision={revision} />
           <div className="section-label"><span>Portfolio snapshot</span><span>{dateLabel} · IDR</span></div>
           {summaryError ? <div className="notice" role="alert">Portfolio summary is unavailable. Use Refresh to try again.</div> : <section className="stats" aria-label="Portfolio summary">
             {[

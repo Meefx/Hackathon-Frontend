@@ -2,12 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { WorkspaceNavigation } from "./workspace-navigation";
 import styles from "./app-shell.module.css";
-const routes = [
-  ["/manager", "Back to chat"],
-  ["/portal", "Portal"],
-  ["/settings", "Settings"],
-];
 export function AppShell({
   title,
   children,
@@ -30,20 +26,10 @@ export function AppShell({
           <span className="brand-mark">gl</span>Graceline
           <span className="brand-dot">.</span>
         </Link>
-        {sidebar || <nav aria-label="Main navigation" className={styles.navigation}>
-          {routes.map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              className={`${styles.navLink} ${path === href ? styles.active : ""}`}
-              aria-current={path === href ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>}
+        {sidebar || <WorkspaceNavigation includeChatLink />}
         <div className={styles.footer}>
-          {sidebar && <Link href="/settings" className={styles.navLink}>Settings</Link>}
+          <Link href="/settings" className={`${styles.navLink} ${path === "/settings" ? styles.active : ""}`}
+            aria-current={path === "/settings" ? "page" : undefined}>Settings</Link>
           <small>Synthetic collection workspace</small>
         </div>
       </aside>

@@ -15,6 +15,12 @@ export interface InboundRequest {
   idempotency_key: string;
   demo_scenario?: "reminder" | "hardship" | "dispute" | "human_request";
 }
+
+export interface WhatsAppOutboundItem {
+  borrower_name: string;
+  loan_reference: string;
+  message: Message;
+}
 export interface DispatchResult {
   message_id: string;
   status: "simulated_sent" | "blocked" | "unavailable" | "submitted" | "sent" | "delivered" | "read" | "failed" | "delivery_unknown";

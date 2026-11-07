@@ -1,5 +1,8 @@
 import { get, post, type Page } from "@/lib/http";
-import type { Message, InboundRequest, DispatchResult, WhatsAppConnection } from "./types";
+import type { Message, InboundRequest, DispatchResult, WhatsAppConnection, WhatsAppOutboundItem } from "./types";
+
+export const getWhatsAppOutbound = (offset = 0, signal?: AbortSignal) =>
+  get<Page<WhatsAppOutboundItem>>(`/api/v1/whatsapp/messages?limit=10&offset=${offset}`, signal);
 export const getMessages = (
   account: string,
   offset = 0,

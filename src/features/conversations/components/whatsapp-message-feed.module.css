@@ -1,0 +1,40 @@
+.panel {
+  margin: 24px 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.heading, .metadata, .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.heading h2 { margin: 8px 0; }
+.messages { list-style: none; padding: 0; margin: 20px 0 0; }
+.message { padding: 20px 0; border-top: 1px solid var(--line); }
+.reference { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+.text {
+  margin: 14px 0;
+  padding: 16px;
+  border-radius: 0 12px 12px;
+  background: var(--brand-soft);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.metadata time, .total { font-size: 12px; color: var(--muted); }
+.status { padding: 6px 10px; border-radius: 20px; background: var(--canvas); font-size: 12px; }
+.status[data-status="read"], .status[data-status="delivered"] { background: #eaf5ee; color: #25603d; }
+.status[data-status="failed"], .status[data-status="delivery_unknown"] { background: #fff0e7; color: #923915; }
+.pagination { justify-content: flex-end; margin-top: 16px; }
+
+@media (max-width: 600px) {
+  .panel { padding: 16px; }
+  .heading { align-items: flex-start; }
+}
